@@ -1,0 +1,452 @@
+/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+test_01_page_loads_successfully (__main__.ProductHypothesisUITests)
+Проверка, что страница загружается успешно ... ERROR
+test_02_welcome_section_visible (__main__.ProductHypothesisUITests)
+Проверка видимости welcome секции и кнопок ... ERROR
+test_03_create_hypothesis_form_opens (__main__.ProductHypothesisUITests)
+Проверка открытия формы создания гипотезы ... ERROR
+test_04_create_hypothesis_form_submission (__main__.ProductHypothesisUITests)
+Проверка заполнения и отправки формы создания гипотезы ... ERROR
+test_05_add_evidence (__main__.ProductHypothesisUITests)
+Проверка добавления доказательства к гипотезе ... ERROR
+test_06_validate_hypothesis_get_score (__main__.ProductHypothesisUITests)
+Проверка валидации гипотезы и получения Score ... ERROR
+test_07_export_hypothesis (__main__.ProductHypothesisUITests)
+Проверка экспорта гипотезы в JSON ... ERROR
+test_08_record_outcome_form_opens (__main__.ProductHypothesisUITests)
+Проверка открытия формы записи исхода ... ERROR
+test_09_correlation_analysis_button (__main__.ProductHypothesisUITests)
+Проверка кнопки анализа корреляции ... ERROR
+test_10_complete_workflow (__main__.ProductHypothesisUITests)
+Проверка полного workflow системы ... ERROR
+
+======================================================================
+ERROR: test_01_page_loads_successfully (__main__.ProductHypothesisUITests)
+Проверка, что страница загружается успешно
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/a.porubov/python/test_ui_web.py", line 42, in setUp
+    self.driver.get(self.base_url)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 483, in get
+    self.execute(Command.GET, {"url": url})
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=151.0.7922.109)
+Stacktrace:
+0   chromedriver                        0x00000001049e0e84 chromedriver + 3427972
+1   chromedriver                        0x00000001046e033c chromedriver + 279356
+2   chromedriver                        0x00000001046dd93c chromedriver + 268604
+3   chromedriver                        0x00000001046d08cc chromedriver + 215244
+4   chromedriver                        0x00000001046d22b8 chromedriver + 221880
+5   chromedriver                        0x00000001046d0d34 chromedriver + 216372
+6   chromedriver                        0x00000001046d04dc chromedriver + 214236
+7   chromedriver                        0x00000001046d0208 chromedriver + 213512
+8   chromedriver                        0x00000001046cdf7c chromedriver + 204668
+9   chromedriver                        0x00000001046cea48 chromedriver + 207432
+10  chromedriver                        0x00000001046e3808 chromedriver + 292872
+11  chromedriver                        0x0000000104767378 chromedriver + 832376
+12  chromedriver                        0x0000000104766830 chromedriver + 829488
+13  chromedriver                        0x000000010471e39c chromedriver + 533404
+14  chromedriver                        0x00000001049b1950 chromedriver + 3234128
+15  chromedriver                        0x00000001049b47b0 chromedriver + 3246000
+16  chromedriver                        0x000000010499b32c chromedriver + 3142444
+17  chromedriver                        0x00000001049b5088 chromedriver + 3248264
+18  chromedriver                        0x000000010498d650 chromedriver + 3085904
+19  chromedriver                        0x00000001049d0580 chromedriver + 3360128
+20  chromedriver                        0x00000001049d06e0 chromedriver + 3360480
+21  chromedriver                        0x00000001049e0b1c chromedriver + 3427100
+22  libsystem_pthread.dylib             0x0000000186e91c54 _pthread_start + 132
+23  libsystem_pthread.dylib             0x0000000186e8cc18 thread_start + 4
+
+
+======================================================================
+ERROR: test_02_welcome_section_visible (__main__.ProductHypothesisUITests)
+Проверка видимости welcome секции и кнопок
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/a.porubov/python/test_ui_web.py", line 42, in setUp
+    self.driver.get(self.base_url)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 483, in get
+    self.execute(Command.GET, {"url": url})
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=151.0.7922.109)
+Stacktrace:
+0   chromedriver                        0x00000001049e0e84 chromedriver + 3427972
+1   chromedriver                        0x00000001046e033c chromedriver + 279356
+2   chromedriver                        0x00000001046dd93c chromedriver + 268604
+3   chromedriver                        0x00000001046d08cc chromedriver + 215244
+4   chromedriver                        0x00000001046d22b8 chromedriver + 221880
+5   chromedriver                        0x00000001046d0d34 chromedriver + 216372
+6   chromedriver                        0x00000001046d04dc chromedriver + 214236
+7   chromedriver                        0x00000001046d0208 chromedriver + 213512
+8   chromedriver                        0x00000001046cdf7c chromedriver + 204668
+9   chromedriver                        0x00000001046cea48 chromedriver + 207432
+10  chromedriver                        0x00000001046e3808 chromedriver + 292872
+11  chromedriver                        0x0000000104767378 chromedriver + 832376
+12  chromedriver                        0x0000000104766830 chromedriver + 829488
+13  chromedriver                        0x000000010471e39c chromedriver + 533404
+14  chromedriver                        0x00000001049b1950 chromedriver + 3234128
+15  chromedriver                        0x00000001049b47b0 chromedriver + 3246000
+16  chromedriver                        0x000000010499b32c chromedriver + 3142444
+17  chromedriver                        0x00000001049b5088 chromedriver + 3248264
+18  chromedriver                        0x000000010498d650 chromedriver + 3085904
+19  chromedriver                        0x00000001049d0580 chromedriver + 3360128
+20  chromedriver                        0x00000001049d06e0 chromedriver + 3360480
+21  chromedriver                        0x00000001049e0b1c chromedriver + 3427100
+22  libsystem_pthread.dylib             0x0000000186e91c54 _pthread_start + 132
+23  libsystem_pthread.dylib             0x0000000186e8cc18 thread_start + 4
+
+
+======================================================================
+ERROR: test_03_create_hypothesis_form_opens (__main__.ProductHypothesisUITests)
+Проверка открытия формы создания гипотезы
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/a.porubov/python/test_ui_web.py", line 42, in setUp
+    self.driver.get(self.base_url)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 483, in get
+    self.execute(Command.GET, {"url": url})
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=151.0.7922.109)
+Stacktrace:
+0   chromedriver                        0x00000001049e0e84 chromedriver + 3427972
+1   chromedriver                        0x00000001046e033c chromedriver + 279356
+2   chromedriver                        0x00000001046dd93c chromedriver + 268604
+3   chromedriver                        0x00000001046d08cc chromedriver + 215244
+4   chromedriver                        0x00000001046d22b8 chromedriver + 221880
+5   chromedriver                        0x00000001046d0d34 chromedriver + 216372
+6   chromedriver                        0x00000001046d04dc chromedriver + 214236
+7   chromedriver                        0x00000001046d0208 chromedriver + 213512
+8   chromedriver                        0x00000001046cdf7c chromedriver + 204668
+9   chromedriver                        0x00000001046cea48 chromedriver + 207432
+10  chromedriver                        0x00000001046e3808 chromedriver + 292872
+11  chromedriver                        0x0000000104767378 chromedriver + 832376
+12  chromedriver                        0x0000000104766830 chromedriver + 829488
+13  chromedriver                        0x000000010471e39c chromedriver + 533404
+14  chromedriver                        0x00000001049b1950 chromedriver + 3234128
+15  chromedriver                        0x00000001049b47b0 chromedriver + 3246000
+16  chromedriver                        0x000000010499b32c chromedriver + 3142444
+17  chromedriver                        0x00000001049b5088 chromedriver + 3248264
+18  chromedriver                        0x000000010498d650 chromedriver + 3085904
+19  chromedriver                        0x00000001049d0580 chromedriver + 3360128
+20  chromedriver                        0x00000001049d06e0 chromedriver + 3360480
+21  chromedriver                        0x00000001049e0b1c chromedriver + 3427100
+22  libsystem_pthread.dylib             0x0000000186e91c54 _pthread_start + 132
+23  libsystem_pthread.dylib             0x0000000186e8cc18 thread_start + 4
+
+
+======================================================================
+ERROR: test_04_create_hypothesis_form_submission (__main__.ProductHypothesisUITests)
+Проверка заполнения и отправки формы создания гипотезы
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/a.porubov/python/test_ui_web.py", line 42, in setUp
+    self.driver.get(self.base_url)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 483, in get
+    self.execute(Command.GET, {"url": url})
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=151.0.7922.109)
+Stacktrace:
+0   chromedriver                        0x00000001049e0e84 chromedriver + 3427972
+1   chromedriver                        0x00000001046e033c chromedriver + 279356
+2   chromedriver                        0x00000001046dd93c chromedriver + 268604
+3   chromedriver                        0x00000001046d08cc chromedriver + 215244
+4   chromedriver                        0x00000001046d22b8 chromedriver + 221880
+5   chromedriver                        0x00000001046d0d34 chromedriver + 216372
+6   chromedriver                        0x00000001046d04dc chromedriver + 214236
+7   chromedriver                        0x00000001046d0208 chromedriver + 213512
+8   chromedriver                        0x00000001046cdf7c chromedriver + 204668
+9   chromedriver                        0x00000001046cea48 chromedriver + 207432
+10  chromedriver                        0x00000001046e3808 chromedriver + 292872
+11  chromedriver                        0x0000000104767378 chromedriver + 832376
+12  chromedriver                        0x0000000104766830 chromedriver + 829488
+13  chromedriver                        0x000000010471e39c chromedriver + 533404
+14  chromedriver                        0x00000001049b1950 chromedriver + 3234128
+15  chromedriver                        0x00000001049b47b0 chromedriver + 3246000
+16  chromedriver                        0x000000010499b32c chromedriver + 3142444
+17  chromedriver                        0x00000001049b5088 chromedriver + 3248264
+18  chromedriver                        0x000000010498d650 chromedriver + 3085904
+19  chromedriver                        0x00000001049d0580 chromedriver + 3360128
+20  chromedriver                        0x00000001049d06e0 chromedriver + 3360480
+21  chromedriver                        0x00000001049e0b1c chromedriver + 3427100
+22  libsystem_pthread.dylib             0x0000000186e91c54 _pthread_start + 132
+23  libsystem_pthread.dylib             0x0000000186e8cc18 thread_start + 4
+
+
+======================================================================
+ERROR: test_05_add_evidence (__main__.ProductHypothesisUITests)
+Проверка добавления доказательства к гипотезе
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/a.porubov/python/test_ui_web.py", line 42, in setUp
+    self.driver.get(self.base_url)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 483, in get
+    self.execute(Command.GET, {"url": url})
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=151.0.7922.109)
+Stacktrace:
+0   chromedriver                        0x00000001049e0e84 chromedriver + 3427972
+1   chromedriver                        0x00000001046e033c chromedriver + 279356
+2   chromedriver                        0x00000001046dd93c chromedriver + 268604
+3   chromedriver                        0x00000001046d08cc chromedriver + 215244
+4   chromedriver                        0x00000001046d22b8 chromedriver + 221880
+5   chromedriver                        0x00000001046d0d34 chromedriver + 216372
+6   chromedriver                        0x00000001046d04dc chromedriver + 214236
+7   chromedriver                        0x00000001046d0208 chromedriver + 213512
+8   chromedriver                        0x00000001046cdf7c chromedriver + 204668
+9   chromedriver                        0x00000001046cea48 chromedriver + 207432
+10  chromedriver                        0x00000001046e3808 chromedriver + 292872
+11  chromedriver                        0x0000000104767378 chromedriver + 832376
+12  chromedriver                        0x0000000104766830 chromedriver + 829488
+13  chromedriver                        0x000000010471e39c chromedriver + 533404
+14  chromedriver                        0x00000001049b1950 chromedriver + 3234128
+15  chromedriver                        0x00000001049b47b0 chromedriver + 3246000
+16  chromedriver                        0x000000010499b32c chromedriver + 3142444
+17  chromedriver                        0x00000001049b5088 chromedriver + 3248264
+18  chromedriver                        0x000000010498d650 chromedriver + 3085904
+19  chromedriver                        0x00000001049d0580 chromedriver + 3360128
+20  chromedriver                        0x00000001049d06e0 chromedriver + 3360480
+21  chromedriver                        0x00000001049e0b1c chromedriver + 3427100
+22  libsystem_pthread.dylib             0x0000000186e91c54 _pthread_start + 132
+23  libsystem_pthread.dylib             0x0000000186e8cc18 thread_start + 4
+
+
+======================================================================
+ERROR: test_06_validate_hypothesis_get_score (__main__.ProductHypothesisUITests)
+Проверка валидации гипотезы и получения Score
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/a.porubov/python/test_ui_web.py", line 42, in setUp
+    self.driver.get(self.base_url)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 483, in get
+    self.execute(Command.GET, {"url": url})
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=151.0.7922.109)
+Stacktrace:
+0   chromedriver                        0x00000001049e0e84 chromedriver + 3427972
+1   chromedriver                        0x00000001046e033c chromedriver + 279356
+2   chromedriver                        0x00000001046dd93c chromedriver + 268604
+3   chromedriver                        0x00000001046d08cc chromedriver + 215244
+4   chromedriver                        0x00000001046d22b8 chromedriver + 221880
+5   chromedriver                        0x00000001046d0d34 chromedriver + 216372
+6   chromedriver                        0x00000001046d04dc chromedriver + 214236
+7   chromedriver                        0x00000001046d0208 chromedriver + 213512
+8   chromedriver                        0x00000001046cdf7c chromedriver + 204668
+9   chromedriver                        0x00000001046cea48 chromedriver + 207432
+10  chromedriver                        0x00000001046e3808 chromedriver + 292872
+11  chromedriver                        0x0000000104767378 chromedriver + 832376
+12  chromedriver                        0x0000000104766830 chromedriver + 829488
+13  chromedriver                        0x000000010471e39c chromedriver + 533404
+14  chromedriver                        0x00000001049b1950 chromedriver + 3234128
+15  chromedriver                        0x00000001049b47b0 chromedriver + 3246000
+16  chromedriver                        0x000000010499b32c chromedriver + 3142444
+17  chromedriver                        0x00000001049b5088 chromedriver + 3248264
+18  chromedriver                        0x000000010498d650 chromedriver + 3085904
+19  chromedriver                        0x00000001049d0580 chromedriver + 3360128
+20  chromedriver                        0x00000001049d06e0 chromedriver + 3360480
+21  chromedriver                        0x00000001049e0b1c chromedriver + 3427100
+22  libsystem_pthread.dylib             0x0000000186e91c54 _pthread_start + 132
+23  libsystem_pthread.dylib             0x0000000186e8cc18 thread_start + 4
+
+
+======================================================================
+ERROR: test_07_export_hypothesis (__main__.ProductHypothesisUITests)
+Проверка экспорта гипотезы в JSON
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/a.porubov/python/test_ui_web.py", line 42, in setUp
+    self.driver.get(self.base_url)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 483, in get
+    self.execute(Command.GET, {"url": url})
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=151.0.7922.109)
+Stacktrace:
+0   chromedriver                        0x00000001049e0e84 chromedriver + 3427972
+1   chromedriver                        0x00000001046e033c chromedriver + 279356
+2   chromedriver                        0x00000001046dd93c chromedriver + 268604
+3   chromedriver                        0x00000001046d08cc chromedriver + 215244
+4   chromedriver                        0x00000001046d22b8 chromedriver + 221880
+5   chromedriver                        0x00000001046d0d34 chromedriver + 216372
+6   chromedriver                        0x00000001046d04dc chromedriver + 214236
+7   chromedriver                        0x00000001046d0208 chromedriver + 213512
+8   chromedriver                        0x00000001046cdf7c chromedriver + 204668
+9   chromedriver                        0x00000001046cea48 chromedriver + 207432
+10  chromedriver                        0x00000001046e3808 chromedriver + 292872
+11  chromedriver                        0x0000000104767378 chromedriver + 832376
+12  chromedriver                        0x0000000104766830 chromedriver + 829488
+13  chromedriver                        0x000000010471e39c chromedriver + 533404
+14  chromedriver                        0x00000001049b1950 chromedriver + 3234128
+15  chromedriver                        0x00000001049b47b0 chromedriver + 3246000
+16  chromedriver                        0x000000010499b32c chromedriver + 3142444
+17  chromedriver                        0x00000001049b5088 chromedriver + 3248264
+18  chromedriver                        0x000000010498d650 chromedriver + 3085904
+19  chromedriver                        0x00000001049d0580 chromedriver + 3360128
+20  chromedriver                        0x00000001049d06e0 chromedriver + 3360480
+21  chromedriver                        0x00000001049e0b1c chromedriver + 3427100
+22  libsystem_pthread.dylib             0x0000000186e91c54 _pthread_start + 132
+23  libsystem_pthread.dylib             0x0000000186e8cc18 thread_start + 4
+
+
+======================================================================
+ERROR: test_08_record_outcome_form_opens (__main__.ProductHypothesisUITests)
+Проверка открытия формы записи исхода
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/a.porubov/python/test_ui_web.py", line 42, in setUp
+    self.driver.get(self.base_url)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 483, in get
+    self.execute(Command.GET, {"url": url})
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=151.0.7922.109)
+Stacktrace:
+0   chromedriver                        0x00000001049e0e84 chromedriver + 3427972
+1   chromedriver                        0x00000001046e033c chromedriver + 279356
+2   chromedriver                        0x00000001046dd93c chromedriver + 268604
+3   chromedriver                        0x00000001046d08cc chromedriver + 215244
+4   chromedriver                        0x00000001046d22b8 chromedriver + 221880
+5   chromedriver                        0x00000001046d0d34 chromedriver + 216372
+6   chromedriver                        0x00000001046d04dc chromedriver + 214236
+7   chromedriver                        0x00000001046d0208 chromedriver + 213512
+8   chromedriver                        0x00000001046cdf7c chromedriver + 204668
+9   chromedriver                        0x00000001046cea48 chromedriver + 207432
+10  chromedriver                        0x00000001046e3808 chromedriver + 292872
+11  chromedriver                        0x0000000104767378 chromedriver + 832376
+12  chromedriver                        0x0000000104766830 chromedriver + 829488
+13  chromedriver                        0x000000010471e39c chromedriver + 533404
+14  chromedriver                        0x00000001049b1950 chromedriver + 3234128
+15  chromedriver                        0x00000001049b47b0 chromedriver + 3246000
+16  chromedriver                        0x000000010499b32c chromedriver + 3142444
+17  chromedriver                        0x00000001049b5088 chromedriver + 3248264
+18  chromedriver                        0x000000010498d650 chromedriver + 3085904
+19  chromedriver                        0x00000001049d0580 chromedriver + 3360128
+20  chromedriver                        0x00000001049d06e0 chromedriver + 3360480
+21  chromedriver                        0x00000001049e0b1c chromedriver + 3427100
+22  libsystem_pthread.dylib             0x0000000186e91c54 _pthread_start + 132
+23  libsystem_pthread.dylib             0x0000000186e8cc18 thread_start + 4
+
+
+======================================================================
+ERROR: test_09_correlation_analysis_button (__main__.ProductHypothesisUITests)
+Проверка кнопки анализа корреляции
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/a.porubov/python/test_ui_web.py", line 42, in setUp
+    self.driver.get(self.base_url)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 483, in get
+    self.execute(Command.GET, {"url": url})
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=151.0.7922.109)
+Stacktrace:
+0   chromedriver                        0x00000001049e0e84 chromedriver + 3427972
+1   chromedriver                        0x00000001046e033c chromedriver + 279356
+2   chromedriver                        0x00000001046dd93c chromedriver + 268604
+3   chromedriver                        0x00000001046d08cc chromedriver + 215244
+4   chromedriver                        0x00000001046d22b8 chromedriver + 221880
+5   chromedriver                        0x00000001046d0d34 chromedriver + 216372
+6   chromedriver                        0x00000001046d04dc chromedriver + 214236
+7   chromedriver                        0x00000001046d0208 chromedriver + 213512
+8   chromedriver                        0x00000001046cdf7c chromedriver + 204668
+9   chromedriver                        0x00000001046cea48 chromedriver + 207432
+10  chromedriver                        0x00000001046e3808 chromedriver + 292872
+11  chromedriver                        0x0000000104767378 chromedriver + 832376
+12  chromedriver                        0x0000000104766830 chromedriver + 829488
+13  chromedriver                        0x000000010471e39c chromedriver + 533404
+14  chromedriver                        0x00000001049b1950 chromedriver + 3234128
+15  chromedriver                        0x00000001049b47b0 chromedriver + 3246000
+16  chromedriver                        0x000000010499b32c chromedriver + 3142444
+17  chromedriver                        0x00000001049b5088 chromedriver + 3248264
+18  chromedriver                        0x000000010498d650 chromedriver + 3085904
+19  chromedriver                        0x00000001049d0580 chromedriver + 3360128
+20  chromedriver                        0x00000001049d06e0 chromedriver + 3360480
+21  chromedriver                        0x00000001049e0b1c chromedriver + 3427100
+22  libsystem_pthread.dylib             0x0000000186e91c54 _pthread_start + 132
+23  libsystem_pthread.dylib             0x0000000186e8cc18 thread_start + 4
+
+
+======================================================================
+ERROR: test_10_complete_workflow (__main__.ProductHypothesisUITests)
+Проверка полного workflow системы
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/Users/a.porubov/python/test_ui_web.py", line 42, in setUp
+    self.driver.get(self.base_url)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 483, in get
+    self.execute(Command.GET, {"url": url})
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "/Users/a.porubov/Library/Python/3.9/lib/python/site-packages/selenium/webdriver/remote/errorhandler.py", line 232, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.WebDriverException: Message: unknown error: net::ERR_CONNECTION_REFUSED
+  (Session info: chrome=151.0.7922.109)
+Stacktrace:
+0   chromedriver                        0x00000001049e0e84 chromedriver + 3427972
+1   chromedriver                        0x00000001046e033c chromedriver + 279356
+2   chromedriver                        0x00000001046dd93c chromedriver + 268604
+3   chromedriver                        0x00000001046d08cc chromedriver + 215244
+4   chromedriver                        0x00000001046d22b8 chromedriver + 221880
+5   chromedriver                        0x00000001046d0d34 chromedriver + 216372
+6   chromedriver                        0x00000001046d04dc chromedriver + 214236
+7   chromedriver                        0x00000001046d0208 chromedriver + 213512
+8   chromedriver                        0x00000001046cdf7c chromedriver + 204668
+9   chromedriver                        0x00000001046cea48 chromedriver + 207432
+10  chromedriver                        0x00000001046e3808 chromedriver + 292872
+11  chromedriver                        0x0000000104767378 chromedriver + 832376
+12  chromedriver                        0x0000000104766830 chromedriver + 829488
+13  chromedriver                        0x000000010471e39c chromedriver + 533404
+14  chromedriver                        0x00000001049b1950 chromedriver + 3234128
+15  chromedriver                        0x00000001049b47b0 chromedriver + 3246000
+16  chromedriver                        0x000000010499b32c chromedriver + 3142444
+17  chromedriver                        0x00000001049b5088 chromedriver + 3248264
+18  chromedriver                        0x000000010498d650 chromedriver + 3085904
+19  chromedriver                        0x00000001049d0580 chromedriver + 3360128
+20  chromedriver                        0x00000001049d06e0 chromedriver + 3360480
+21  chromedriver                        0x00000001049e0b1c chromedriver + 3427100
+22  libsystem_pthread.dylib             0x0000000186e91c54 _pthread_start + 132
+23  libsystem_pthread.dylib             0x0000000186e8cc18 thread_start + 4
+
+
+----------------------------------------------------------------------
+Ran 10 tests in 9.823s
+
+FAILED (errors=10)
+
+======================================================================
+🚀 ЗАПУСК UI ТЕСТОВ ДЛЯ PRODUCT HYPOTHESIS ASSISTANT
+======================================================================
+

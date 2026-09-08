@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Hypothesis Assistant</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- Шапка -->
+        <header class="header">
+            <div class="header-content">
+                <h1>🎯 Product Hypothesis Assistant</h1>
+                <p>Система поддержки принятия решений продуктового менеджера</p>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- Левая колонка: Навигация и список -->
+            <aside class="sidebar">
+                <div class="sidebar-section">
+                    <h3>📋 Гипотезы</h3>
+                    <button class="btn btn-primary btn-block" onclick="showSection('create')">
+                        + Создать новую
+                    </button>
+                    <div id="hypotheses-list" class="hypotheses-list">
+                        <!-- Список гипотез будет здесь -->
+                    </div>
+                </div>
+
+                <div class="sidebar-section">
+                    <h3>📊 Анализ</h3>
+                    <button class="btn btn-secondary btn-block" onclick="showCorrelationAnalysis()">
+                        Анализ корреляции
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Главная область контента -->
+            <article class="content">
+                <!-- Раздел 1: Создание гипотезы -->
+                <section id="create" class="section hidden">
+                    <h2>Создание новой гипотезы</h2>
+                    <form id="create-form" class="form">
+                        <div class="form-group">
+                            <label for="title">Название фичи *</label>
+                            <input type="text" id="title" required placeholder="Например: Тёмный режим в приложении">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="description">Краткое описание *</label>
+                            <textarea id="description" required placeholder="1-2 предложения о фиче"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="problem_statement">Какую проблему решает? *</label>
+                            <textarea id="problem_statement" required placeholder="Какую боль пользователя устраняет эта фича?"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="target_users">Целевые пользователи *</label>
+                            <input type="text" id="target_users" required placeholder="Кто целевая аудитория?">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="expected_outcome">Ожидаемый результат *</label>
+                            <textarea id="expected_outcome" required placeholder="Какой результат ожидаем от этой фичи?"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Создать гипотезу</button>
+                    </form>
+                </section>
+
+                <!-- Раздел 2: Просмотр и редактирование гипотезы -->
+                <section id="hypothesis-detail" class="section hidden">
+                    <div class="hypothesis-header">
+                        <h2 id="hyp-title"></h2>
+                        <span id="hyp-status" class="status-badge"></span>
+                    </div>
+
+                    <div class="hypothesis-info">
+                        <div class="info-item">
+                            <strong>Описание:</strong>
+                            <p id="hyp-description"></p>
+                        </div>
+                        <div class="info-item">
+                            <strong>Проблема:</strong>
+                            <p id="hyp-problem"></p>
+                        </div>
+                        <div class="info-item">
+                            <strong>Целевые пользователи:</strong>
+                            <p id="hyp-users"></p>
+                        </div>
+                        <div class="info-item">
+                            <strong>Ожидаемый результат:</strong>
+                            <p id="hyp-outcome"></p>
+                        </div>
+                    </div>
+
+                    <!-- Доказательства -->
+                    <div class="evidence-section">
+                        <h3>📝 Доказательства</h3>
+                        <div id="evidence-list" class="evidence-list"></div>
+
+                        <div class="add-evidence-form">
+                            <h4>Добавить доказательство</h4>
+                            <form id="evidence-form" class="form">
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="evidence-type">Тип *</label>
+                                        <select id="evidence-type" required></select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="evidence-supports">Статус *</label>
+                                        <select id="evidence-supports" required>
+                                            <option value="true">Поддерживает</option>
+                                            <option value="false">Опровергает</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="evidence-title">Название доказательства *</label>
+                                    <input type="text" id="evidence-title" required placeholder="Название">
+                                </div>
+
+                                <div class="form-group">
+                                    <label for="evidence-description">Описание *</label>
+                                    <textarea id="evidence-description" required placeholder="Подробное описание доказательства"></textarea>
+                                </div>
+
+                                <div class="form-row">
+                                    <div class="form-group">
+                                        <label for="evidence-source">Источник *</label>
+                                        <input type="text" id="evidence-source" required placeholder="Откуда информация?">
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="evidence-confidence">Уверенность (0.0-1.0) *</label>
+                                        <input type="number" id="evidence-confidence" required min="0" max="1" step="0.1" value="0.8">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn btn-secondary">Добавить доказательство</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Score и рекомендация -->
+                    <div id="score-section" class="score-section hidden">
+                        <h3>📊 Результаты валидации</h3>
+                        <div class="score-card">
+                            <div class="score-number">
+                                <span id="score-value">0</span>
+                                <span class="score-label">/100</span>
+                            </div>
+                            <div class="score-details">
+                                <p><strong>Рекомендация:</strong> <span id="score-recommendation" class="recommendation"></span></p>
+                                <p><strong>Уверенность:</strong> <span id="score-confidence"></span></p>
+                                <p><strong>Полнота данных:</strong> <span id="score-completeness"></span>%</p>
+                            </div>
+                        </div>
+
+                        <div class="breakdown-section">
+                            <h4>Разложение по факторам</h4>
+                            <div id="score-breakdown" class="breakdown-list"></div>
+                        </div>
+
+                        <div class="evidence-summary">
+                            <p>✓ Поддерживающих доказательств: <strong id="supporting-count">0</strong></p>
+                            <p>✗ Противоречащих доказательств: <strong id="contradicting-count">0</strong></p>
+                        </div>
+                    </div>
+
+                    <!-- Кнопки действия -->
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" onclick="validateHypothesis()">
+                            Валидировать и получить Score
+                        </button>
+                        <button class="btn btn-secondary" onclick="showOutcomeForm()">
+                            Записать исход (постфактум)
+                        </button>
+                        <button class="btn btn-info" onclick="exportHypothesis()">
+                            Экспортировать JSON
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Раздел 3: Запись исхода -->
+                <section id="outcome" class="section hidden">
+                    <h2>Запись фактического исхода фичи</h2>
+                    <form id="outcome-form" class="form">
+                        <div class="form-group">
+                            <label for="outcome-success">Результат *</label>
+                            <select id="outcome-success" required>
+                                <option value="">-- Выберите --</option>
+                                <option value="true">✓ Успех (цели достигнуты)</option>
+                                <option value="false">✗ Неудача (нет эффекта)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="outcome-impact">Описание реального воздействия *</label>
+                            <textarea id="outcome-impact" required placeholder="Какой был реальный результат после релиза?"></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="outcome-lessons">Извлечённые уроки *</label>
+                            <textarea id="outcome-lessons" required placeholder="Какие уроки вы извлекли? Что нужно изменить?"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Записать исход</button>
+                    </form>
+                </section>
+
+                <!-- Раздел 4: Анализ корреляции -->
+                <section id="correlation" class="section hidden">
+                    <h2>📈 Анализ корреляции Score ↔ Реальный результат</h2>
+                    <div id="correlation-content"></div>
+                </section>
+
+                <!-- Справка -->
+                <section id="welcome" class="section active">
+                    <div class="welcome-card">
+                        <h2>🎯 Добро пожаловать!</h2>
+                        <p>Это приложение помогает подготовить количественно обоснованное заключение о потенциале продуктовой гипотезы.</p>
+                        
+                        <h3>📋 Как начать:</h3>
+                        <ol>
+                            <li><strong>Создайте гипотезу</strong> - определите фичу, проблему и целевую аудиторию</li>
+                            <li><strong>Добавьте доказательства</strong> - соберите данные из разных источников</li>
+                            <li><strong>Валидируйте</strong> - получите score уверенности и рекомендацию</li>
+                            <li><strong>Запустите фичу</strong> - если recommendation = "proceed"</li>
+                            <li><strong>Запишите результаты</strong> - через 6+ месяцев после релиза</li>
+                        </ol>
+
+                        <h3>🎯 Три цели системы:</h3>
+                        <ul>
+                            <li><strong>Цель 1:</strong> Сократить время подготовки обоснования с 40 часов до нескольких часов</li>
+                            <li><strong>Цель 2:</strong> Снизить долю неудачных фичей с 20% до 5%</li>
+                            <li><strong>Цель 3:</strong> Подтвердить корреляцию score ↔ реальный успех</li>
+                        </ul>
+
+                        <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
+                            <em>Разработано на основе TDPD (Test-Driven Product Development) фреймворка</em>
+                        </p>
+                    </div>
+                </section>
+            </article>
+        </main>
+
+        <!-- Уведомления -->
+        <div id="notification" class="notification hidden"></div>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

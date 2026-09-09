@@ -35,6 +35,13 @@
                         Анализ корреляции
                     </button>
                 </div>
+
+                <div class="sidebar-section">
+                    <h3>❓ Помощь</h3>
+                    <button class="btn btn-secondary btn-block" onclick="showSection('help')">
+                        📖 Руководство пользователя
+                    </button>
+                </div>
             </aside>
 
             <!-- Главная область контента -->
@@ -244,6 +251,81 @@
                         <p style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #ddd;">
                             <em>Разработано на основе TDPD (Test-Driven Product Development) фреймворка</em>
                         </p>
+                    </div>
+                </section>
+
+                <!-- Раздел: Руководство пользователя -->
+                <section id="help" class="section hidden">
+                    <h2>📖 Руководство пользователя</h2>
+                    
+                    <div class="help-content">
+                        <div class="help-section">
+                            <h3>🎯 Что это такое?</h3>
+                            <p><strong>Product Hypothesis Assistant</strong> - система для обоснования новых фич на основе данных и доказательств.</p>
+                            <p><strong>Главная функция:</strong> Вычисление Score (0-100) и получение рекомендации: <strong>PROCEED</strong> (воплощать), <strong>INVESTIGATE</strong> (исследовать) или <strong>REJECT</strong> (отклонить).</p>
+                        </div>
+
+                        <div class="help-section">
+                            <h3>⚡ Основные возможности</h3>
+                            <ul class="features-list">
+                                <li><strong>📝 Создание гипотез</strong> - Определите новую фичу</li>
+                                <li><strong>💾 Сбор доказательств</strong> - 6 типов доказательств</li>
+                                <li><strong>📊 Автоматический Score</strong> - Вычисление уверенности</li>
+                                <li><strong>🔍 Научные исследования</strong> - Автопоиск публикаций</li>
+                                <li><strong>🎯 Рекомендация</strong> - Четкое руководство</li>
+                                <li><strong>📈 Анализ корреляции</strong> - Отслеживание точности</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section">
+                            <h3>📚 6 шагов использования</h3>
+                            <ol>
+                                <li><strong>Создание гипотезы</strong> - "+ Создать новую" и заполнить информацию о фиче</li>
+                                <li><strong>Добавление доказательств</strong> - Минимум 3-5 доказательств разных типов</li>
+                                <li><strong>Валидирование</strong> - "✅ Валидировать гипотезу" для получения Score</li>
+                                <li><strong>Научные исследования</strong> - Просмотр найденных публикаций</li>
+                                <li><strong>Релиз фичи</strong> - Если Score > 70, начните разработку</li>
+                                <li><strong>Анализ корреляции</strong> - Запишите результаты и смотрите точность предсказаний</li>
+                            </ol>
+                        </div>
+
+                        <div class="help-section">
+                            <h3>📊 Интерпретация Score</h3>
+                            <ul>
+                                <li><strong>Score > 70</strong> → ✅ <strong>PROCEED</strong> - Высокая вероятность успеха, начните разработку</li>
+                                <li><strong>Score 40-70</strong> → ⚠️ <strong>INVESTIGATE</strong> - Средние шансы, добавьте доказательства или A/B тест</li>
+                                <li><strong>Score < 40</strong> → ❌ <strong>REJECT</strong> - Низкие шансы, отклоните идею</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section">
+                            <h3>📝 6 типов доказательств</h3>
+                            <ul>
+                                <li><strong>🎯 Market Research</strong> - Опросы и исследования рынка</li>
+                                <li><strong>👥 User Feedback</strong> - Отзывы пользователей</li>
+                                <li><strong>🏆 Competitor Analysis</strong> - Что делают конкуренты</li>
+                                <li><strong>📈 Analytics</strong> - Данные из аналитических систем</li>
+                                <li><strong>🎓 Expert Opinion</strong> - Мнение экспертов</li>
+                                <li><strong>📚 Case Study</strong> - Примеры других компаний</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section">
+                            <h3>💡 Советы</h3>
+                            <ul>
+                                <li>✅ Используйте разнообразные типы доказательств</li>
+                                <li>✅ Будьте честны с уверенностью (confidence)</li>
+                                <li>✅ Собирайте доказательства ДО релиза</li>
+                                <li>✅ Записывайте результаты честно</li>
+                                <li>✅ Смотрите анализ корреляции регулярно</li>
+                            </ul>
+                        </div>
+
+                        <div class="help-section" style="background-color: #f0f4f8; padding: 15px; border-radius: 8px;">
+                            <h3>🧪 Фреймворк TDPD</h3>
+                            <p>Система основана на <strong>Test-Driven Product Development</strong> - методологии где каждая фича тестируется перед внедрением.</p>
+                            <p><strong>Цели:</strong> Сократить время подготовки обоснования, снизить долю неудачных фич, улучшить решения на основе данных.</p>
+                        </div>
                     </div>
                 </section>
             </article>

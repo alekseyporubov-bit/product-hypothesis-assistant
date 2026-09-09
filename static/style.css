@@ -772,3 +772,95 @@ html, body {
 .mb-20 {
     margin-bottom: 20px;
 }
+
+/* ============================================================================
+   Help Section Styles
+   ============================================================================ */
+
+.help-content {
+    max-width: 100%;
+}
+
+.help-section {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+}
+
+.help-section h3 {
+    font-size: 18px;
+    margin-bottom: 12px;
+    color: var(--primary-color);
+}
+
+.help-section h4 {
+    font-size: 16px;
+    margin-top: 15px;
+    margin-bottom: 10px;
+    color: var(--text-color);
+}
+
+.help-section ul,
+.help-section ol {
+    margin-left: 20px;
+    line-height: 1.8;
+}
+
+.help-section li {
+    margin-bottom: 8px;
+    color: var(--text-color);
+}
+
+.features-list li {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.features-list li:last-child {
+    border-bottom: none;
+}
+
+.evidence-types li {
+    padding: 10px;
+    margin-bottom: 5px;
+    background-color: var(--light-bg);
+    border-radius: 4px;
+}
+
+.step {
+    background-color: var(--light-bg);
+    padding: 15px;
+    border-radius: 6px;
+    margin-bottom: 15px;
+    border-left: 3px solid var(--info-color);
+}
+
+.step h4 {
+    color: var(--info-color);
+    margin-top: 0;
+}
+
+.score-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+}
+
+.score-table th {
+    background-color: var(--primary-color);
+    color: white;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+}
+
+.score-table td {
+    padding: 12px;
+    border: 1px solid var(--border-color);
+}
+
+.score-table tr:nth-child(even) {
+    background-color: var(--light-bg);
+}

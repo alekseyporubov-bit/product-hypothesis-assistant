@@ -78,3 +78,8 @@ npm-debug.log
 tempfiles/
 test_results/
 uploads/
+
+# Temporary hypothesis data files created during testing
+*_test_hypotheses_data.json
+temp_*
+test_*.json

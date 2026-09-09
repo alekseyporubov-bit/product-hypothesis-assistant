@@ -16,6 +16,7 @@ from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 import json
 import uuid
+from pathlib import Path
 from research_finder import ResearchFinder
 
 
@@ -397,9 +398,14 @@ class HypothesisManager:
     Реализует workflow TDPD: Context → Problem → Input → Red → Green → Output/UAT
     """
     
+    # Файл для сохранения гипотез
+    STORAGE_FILE = "hypotheses_data.json"
+    
     def __init__(self):
         self.hypotheses: Dict[str, Hypothesis] = {}
         self.scoring_engine = ScoringEngine()
+        # Загружаем сохраненные данные при инициализации
+        self.load_from_file()
     
     def create_hypothesis(self, title: str, description: str, 
                          problem_statement: str, target_users: str,
@@ -414,6 +420,7 @@ class HypothesisManager:
             status=HypothesisStatus.DRAFT
         )
         self.hypotheses[hypothesis.id] = hypothesis
+        self.save_to_file()  # ← Сохраняем в JSON
         return hypothesis
     
     def add_evidence(self, hypothesis_id: str, evidence: Evidence) -> bool:
@@ -422,6 +429,7 @@ class HypothesisManager:
             return False
         self.hypotheses[hypothesis_id].evidence.append(evidence)
         self.hypotheses[hypothesis_id].updated_at = datetime.now()
+        self.save_to_file()  # ← Сохраняем в JSON
         return True
     
     def add_survey_question(self, hypothesis_id: str, question: SurveyQuestion) -> bool:
@@ -429,6 +437,7 @@ class HypothesisManager:
         if hypothesis_id not in self.hypotheses:
             return False
         self.hypotheses[hypothesis_id].survey_questions.append(question)
+        self.save_to_file()  # ← Сохраняем в JSON
         return True
     
     def validate_hypothesis(self, hypothesis_id: str) -> Tuple[bool, Optional[HypothesisScore]]:
@@ -454,6 +463,7 @@ class HypothesisManager:
             hypothesis.status = HypothesisStatus.REJECTED
         
         hypothesis.updated_at = datetime.now()
+        self.save_to_file()  # ← Сохраняем в JSON
         return True, score
     
     def record_outcome(self, hypothesis_id: str, outcome: RealWorldOutcome) -> bool:
@@ -468,6 +478,7 @@ class HypothesisManager:
         self.hypotheses[hypothesis_id].outcome = outcome
         self.hypotheses[hypothesis_id].status = HypothesisStatus.COMPLETED
         self.hypotheses[hypothesis_id].updated_at = datetime.now()
+        self.save_to_file()  # ← Сохраняем в JSON
         return True
     
     def get_hypothesis(self, hypothesis_id: str) -> Optional[Hypothesis]:
@@ -484,6 +495,134 @@ class HypothesisManager:
         if not hypothesis:
             return None
         return hypothesis.to_dict()
+    
+    # ========================================================================
+    # PERSISTENCE: Сохранение и загрузка данных в JSON файл
+    # ========================================================================
+    
+    def save_to_file(self) -> bool:
+        """Сохраняет все гипотезы в JSON файл"""
+        try:
+            data = {
+                h_id: h.to_dict() 
+                for h_id, h in self.hypotheses.items()
+            }
+            with open(self.STORAGE_FILE, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2, default=str)
+            print(f"💾 Данные сохранены в {self.STORAGE_FILE} ({len(self.hypotheses)} гипотез)")
+            return True
+        except Exception as e:
+            print(f"❌ Ошибка сохранения данных в {self.STORAGE_FILE}: {e}")
+            return False
+    
+    def load_from_file(self) -> bool:
+        """Загружает гипотезы из JSON файла"""
+        try:
+            if not Path(self.STORAGE_FILE).exists():
+                print(f"📁 Файл {self.STORAGE_FILE} не найден, начата работа с пустым хранилищем")
+                return True  # Файл еще не создан - это нормально
+            
+            with open(self.STORAGE_FILE, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # Восстанавливаем гипотезы из JSON
+            for h_id, h_data in data.items():
+                hypothesis = self._hypothesis_from_dict(h_data)
+                self.hypotheses[h_id] = hypothesis
+            
+            print(f"📥 Загружено {len(self.hypotheses)} гипотез из {self.STORAGE_FILE}")
+            return True
+        except Exception as e:
+            print(f"❌ Ошибка загрузки данных из {self.STORAGE_FILE}: {e}")
+            return False
+    
+    @staticmethod
+    def _hypothesis_from_dict(data: Dict) -> Hypothesis:
+        """Восстанавливает объект Hypothesis из словаря"""
+        try:
+            # Восстанавливаем основные поля
+            hypothesis = Hypothesis(
+                id=data.get('id', str(uuid.uuid4())),
+                title=data.get('title', ''),
+                description=data.get('description', ''),
+                problem_statement=data.get('problem_statement', ''),
+                target_users=data.get('target_users', ''),
+                expected_outcome=data.get('expected_outcome', ''),
+                status=HypothesisStatus(data.get('status', 'draft')),
+            )
+            
+            # Восстанавливаем дату создания и обновления
+            hypothesis.created_at = datetime.fromisoformat(data.get('created_at', datetime.now().isoformat()))
+            hypothesis.updated_at = datetime.fromisoformat(data.get('updated_at', datetime.now().isoformat()))
+            
+            # Восстанавливаем доказательства
+            for evidence_data in data.get('evidence', []):
+                evidence = HypothesisManager._evidence_from_dict(evidence_data)
+                hypothesis.evidence.append(evidence)
+            
+            # Восстанавливаем score если есть
+            if data.get('score'):
+                hypothesis.score = HypothesisManager._score_from_dict(data['score'])
+            
+            # Восстанавливаем outcome если есть
+            if data.get('outcome'):
+                hypothesis.outcome = HypothesisManager._outcome_from_dict(data['outcome'])
+            
+            return hypothesis
+        except Exception as e:
+            print(f"Ошибка восстановления гипотезы: {e}")
+            raise
+    
+    @staticmethod
+    def _evidence_from_dict(data: Dict) -> Evidence:
+        """Восстанавливает объект Evidence из словаря"""
+        evidence = Evidence(
+            id=data.get('id', str(uuid.uuid4())),
+            evidence_type=EvidenceType(data.get('evidence_type', 'market_research')),
+            title=data.get('title', ''),
+            description=data.get('description', ''),
+            source=data.get('source', ''),
+            confidence=float(data.get('confidence', 0.5)),
+            supports=data.get('supports', True)
+        )
+        evidence.created_at = datetime.fromisoformat(data.get('created_at', datetime.now().isoformat()))
+        return evidence
+    
+    @staticmethod
+    def _score_from_dict(data: Dict) -> HypothesisScore:
+        """Восстанавливает объект HypothesisScore из словаря"""
+        breakdown = []
+        for item in data.get('breakdown', []):
+            breakdown.append(ScoreBreakdown(
+                factor=ScoringFactor(item.get('factor', 'problem_severity')),
+                score=float(item.get('score', 0)),
+                rationale=item.get('rationale', ''),
+                evidence_count=item.get('evidence_count', 0)
+            ))
+        
+        return HypothesisScore(
+            overall_score=float(data.get('overall_score', 0)),
+            confidence_level=data.get('confidence_level', 'low'),
+            breakdown=breakdown,
+            supporting_evidence_count=data.get('supporting_evidence_count', 0),
+            contradicting_evidence_count=data.get('contradicting_evidence_count', 0),
+            data_completeness=float(data.get('data_completeness', 0.0)),
+            recommendation=data.get('recommendation', ''),
+            research_sources=data.get('research_sources', [])
+        )
+    
+    @staticmethod
+    def _outcome_from_dict(data: Dict) -> RealWorldOutcome:
+        """Восстанавливает объект RealWorldOutcome из словаря"""
+        outcome = RealWorldOutcome(
+            hypothesis_id=data.get('hypothesis_id', ''),
+            was_successful=data.get('was_successful', False),
+            actual_impact=data.get('actual_impact', ''),
+            metrics=data.get('metrics', {}),
+            lessons_learned=data.get('lessons_learned', '')
+        )
+        outcome.recorded_at = datetime.fromisoformat(data.get('recorded_at', datetime.now().isoformat()))
+        return outcome
     
     def get_correlation_analysis(self) -> Dict:
         """

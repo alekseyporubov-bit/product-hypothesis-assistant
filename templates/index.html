@@ -106,8 +106,12 @@
                     </div>
 
                     <!-- Доказательства -->
+                    <!-- Секция 1: Ручные доказательства -->
                     <div class="evidence-section">
-                        <h3>📝 Доказательства</h3>
+                        <div class="evidence-section-header">
+                            <h3>✍️ Ручные доказательства</h3>
+                            <p class="section-hint">Добавьте доказательства, которые вы нашли самостоятельно</p>
+                        </div>
                         <div id="evidence-list" class="evidence-list"></div>
 
                         <div class="add-evidence-form">
@@ -150,6 +154,25 @@
 
                                 <button type="submit" class="btn btn-secondary">Добавить доказательство</button>
                             </form>
+                        </div>
+                    </div>
+
+                    <!-- Секция 2: Автоматически собранные исследования 🔥 -->
+                    <div class="evidence-section auto-research-section">
+                        <div class="evidence-section-header">
+                            <h3>🔍 Автоматически собранные материалы</h3>
+                            <p class="section-hint">Найдите исследования из открытых источников по теме вашей гипотезы</p>
+                        </div>
+                        <button id="btn-scan-research" class="btn btn-primary btn-block" onclick="scanResearch()">
+                            🔬 Найти исследования в открытых источниках
+                        </button>
+                        <div id="auto-research-loading" class="loading-indicator hidden">
+                            <div class="spinner"></div>
+                            <p>Ищем исследования в открытых источниках... Это может занять несколько минут.</p>
+                        </div>
+                        <div id="auto-research-list" class="evidence-list"></div>
+                        <div id="auto-research-empty" class="empty-state">
+                            <p>🔬 Нажмите кнопку выше, чтобы найти исследования</p>
                         </div>
                     </div>
 
@@ -333,6 +356,52 @@
 
         <!-- Уведомления -->
         <div id="notification" class="notification hidden"></div>
+
+        <!-- Модальное окно для деталей исследования 🔥 -->
+        <div id="research-modal" class="modal hidden">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3 id="modal-research-title">Детали исследования</h3>
+                    <span class="modal-close" onclick="closeResearchModal()">&times;</span>
+                </div>
+                <div class="modal-body">
+                    <div class="research-detail-card">
+                        <div class="detail-row">
+                            <span class="detail-label">Название:</span>
+                            <span id="modal-title" class="detail-value"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Авторы:</span>
+                            <span id="modal-authors" class="detail-value"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Год:</span>
+                            <span id="modal-year" class="detail-value"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Источник:</span>
+                            <span id="modal-source" class="detail-value"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Ссылка:</span>
+                            <span id="modal-url" class="detail-value"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Вердикт:</span>
+                            <span id="modal-verdict" class="detail-value verdict-badge"></span>
+                        </div>
+                        <div class="detail-row">
+                            <span class="detail-label">Степень доверия:</span>
+                            <span id="modal-confidence" class="detail-value"></span>
+                        </div>
+                        <div class="detail-row detail-row-full">
+                            <span class="detail-label">Аннотация:</span>
+                            <span id="modal-abstract" class="detail-value"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="{{ url_for('static', filename='script.js') }}"></script>

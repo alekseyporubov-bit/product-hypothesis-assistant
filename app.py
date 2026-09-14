@@ -219,5 +219,35 @@ def get_evidence_types():
     return jsonify({'success': True, 'types': types})
 
 
+# ============================================================================
+# 🔥 НОВАЯ ФУНКЦИОНАЛЬНАЯ ВОЗМОЖНОСТЬ: Автоматический поиск исследований
+# ============================================================================
+
+@app.route('/api/scan-research/<hypothesis_id>', methods=['POST'])
+def scan_research(hypothesis_id):
+    """
+    🔥 НОВАЯ ФУНКЦИОНАЛЬНАЯ ВОЗМОЖНОСТЬ:
+    Автоматически ищет исследования в открытых источниках по теме гипотезы.
+    Результаты сохраняются в auto_research_sources (максимум 5).
+    """
+    try:
+        result = manager.scan_auto_research(hypothesis_id)
+
+        if not result.get('success'):
+            return jsonify(result), 404
+
+        return jsonify({
+            'success': True,
+            'hypothesis_id': result['hypothesis_id'],
+            'hypothesis_title': result['hypothesis_title'],
+            'research_count': result['research_count'],
+            'research_sources': result['research_sources'],
+            'average_relevance': result['average_relevance'],
+            'message': result['message']
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+
+
 if __name__ == '__main__':
     app.run(debug=False, host='localhost', port=5000, threaded=True)

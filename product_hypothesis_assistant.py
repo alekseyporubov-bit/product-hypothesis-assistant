@@ -174,6 +174,7 @@ class Hypothesis:
     score: Optional[HypothesisScore] = None
     
     evidence: List[Evidence] = field(default_factory=list)
+    auto_research_sources: List[Dict] = field(default_factory=list)
     survey_questions: List[SurveyQuestion] = field(default_factory=list)
     
     created_at: datetime = field(default_factory=datetime.now)
@@ -194,6 +195,8 @@ class Hypothesis:
             "score": self.score.to_dict() if self.score else None,
             "evidence": [e.to_dict() for e in self.evidence],
             "evidence_count": len(self.evidence),
+            "auto_research_sources": self.auto_research_sources,
+            "auto_research_count": len(self.auto_research_sources),
             "survey_questions_count": len(self.survey_questions),
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
@@ -495,6 +498,43 @@ class HypothesisManager:
         if not hypothesis:
             return None
         return hypothesis.to_dict()
+
+    def scan_auto_research(self, hypothesis_id: str) -> Dict:
+        """
+        🔥 НОВАЯ ФУНКЦИОНАЛЬНАЯ ВОЗМОЖНОСТЬ:
+        Автоматически ищет исследования в открытых источниках по теме гипотезы
+        и сохраняет их в auto_research_sources (максимум 5).
+        """
+        hypothesis = self.get_hypothesis(hypothesis_id)
+        if not hypothesis:
+            return {'success': False, 'error': 'Гипотеза не найдена'}
+
+        # Инициализируем ResearchFinder для поиска
+        research_finder = ResearchFinder()
+
+        # Ищем исследования по проблеме и целевой аудитории
+        research_analysis = research_finder.search_problem_severity(
+            problem_statement=hypothesis.problem_statement,
+            target_users=hypothesis.target_users
+        )
+
+        # Ограничиваем максимум 5 результатами
+        sources = research_analysis.get('research_sources', [])[:5]
+
+        # Сохраняем в гипотезу
+        hypothesis.auto_research_sources = sources
+        hypothesis.updated_at = datetime.now()
+        self.save_to_file()
+
+        return {
+            'success': True,
+            'hypothesis_id': hypothesis_id,
+            'hypothesis_title': hypothesis.title,
+            'research_count': len(sources),
+            'research_sources': sources,
+            'average_relevance': research_analysis.get('average_relevance', 0),
+            'message': f'Найдено {len(sources)} исследований из открытых источников'
+        }
     
     # ========================================================================
     # PERSISTENCE: Сохранение и загрузка данных в JSON файл
@@ -568,6 +608,8 @@ class HypothesisManager:
             if data.get('outcome'):
                 hypothesis.outcome = HypothesisManager._outcome_from_dict(data['outcome'])
             
+            if data.get('auto_research_sources'):
+                hypothesis.auto_research_sources = data['auto_research_sources']
             return hypothesis
         except Exception as e:
             print(f"Ошибка восстановления гипотезы: {e}")

@@ -864,3 +864,304 @@ html, body {
 .score-table tr:nth-child(even) {
     background-color: var(--light-bg);
 }
+
+/* ============================================================================
+   🔥 НОВАЯ ФУНКЦИОНАЛЬНАЯ ВОЗМОЖНОСТЬ: Автоматический поиск исследований
+   ============================================================================ */
+
+.evidence-section-header {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+.evidence-section-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text-color);
+}
+
+.section-hint {
+    margin: 0;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.auto-research-section {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid var(--border-color);
+}
+
+/* Спиннер и индикатор загрузки */
+.loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 25px;
+    background: var(--light-bg);
+    border-radius: 8px;
+    margin-bottom: 15px;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.empty-state {
+    padding: 20px;
+    background: var(--light-bg);
+    border: 1px dashed var(--border-color);
+    border-radius: 8px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+}
+
+/* Элемент найденного исследования */
+.auto-research-item {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 12px;
+    transition: background-color 0.15s ease;
+}
+
+.auto-research-item:hover {
+    background-color: var(--light-bg);
+}
+
+.auto-research-item:last-child {
+    border-bottom: none;
+}
+
+.auto-research-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.auto-research-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.auto-research-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-color);
+    line-height: 1.4;
+}
+
+.auto-research-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+
+.meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.auto-research-abstract {
+    font-size: 13px;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 10px;
+}
+
+.auto-research-url a {
+    font-size: 12px;
+    color: var(--info-color);
+    text-decoration: none;
+}
+
+.auto-research-url a:hover {
+    text-decoration: underline;
+}
+
+.auto-research-click-hint {
+    font-size: 11px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    padding-top: 4px;
+}
+
+/* Полоса доверия */
+.auto-research-trust {
+    margin-top: 8px;
+}
+
+.trust-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.trust-bar {
+    height: 6px;
+    background: var(--border-color);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.trust-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+/* Вердикт-бейджи */
+.verdict-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.verdict-badge.verdict-strong {
+    background-color: #dcfce7;
+    color: var(--success-color);
+}
+
+.verdict-badge.verdict-moderate {
+    background-color: #fef3c7;
+    color: #b45309;
+}
+
+.verdict-badge.verdict-weak {
+    background-color: #ffedd5;
+    color: #c2410c;
+}
+
+.verdict-badge.verdict-minimal {
+    background-color: #fee2e2;
+    color: var(--danger-color);
+}
+
+/* ============================================================================
+   Модальное окно деталей исследования
+   ============================================================================ */
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 640px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--text-color);
+}
+
+.modal-close {
+    font-size: 26px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-muted);
+    transition: color 0.15s ease;
+}
+
+.modal-close:hover {
+    color: var(--danger-color);
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.research-detail-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.detail-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    font-size: 14px;
+}
+
+.detail-row-full {
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-label {
+    font-weight: 600;
+    color: var(--text-color);
+    min-width: 120px;
+    flex-shrink: 0;
+}
+
+.detail-value {
+    color: var(--text-muted);
+    word-break: break-word;
+    line-height: 1.5;
+}
+
+.detail-value a {
+    color: var(--info-color);
+    text-decoration: none;
+}
+
+.detail-value a:hover {
+    text-decoration: underline;
+}
+
+.detail-value.verdict-badge {
+    color: inherit;
+    word-break: normal;
+}

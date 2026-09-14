@@ -225,6 +225,17 @@ async function displayHypothesisDetail(hypothesisId) {
     
     // Показываем доказательства
     displayEvidenceList(hyp.evidence);
+
+    // Показываем автоматически собранные исследования
+    if (hyp.auto_research_sources && hyp.auto_research_sources.length > 0) {
+        displayAutoResearchList(hyp.auto_research_sources);
+        document.getElementById('auto-research-empty').classList.add('hidden');
+    } else {
+        document.getElementById('auto-research-list').innerHTML = '';
+        document.getElementById('auto-research-empty').classList.remove('hidden');
+        document.getElementById('auto-research-empty').innerHTML =
+            '<p>🔬 Нажмите кнопку выше, чтобы найти исследования</p>';
+    }
     
     // Если есть score, показываем его
     if (hyp.score) {
@@ -404,7 +415,194 @@ async function recordOutcome(event) {
 }
 
 // ============================================================================
-// Экспорт
+// 🔥 НОВАЯ ФУНКЦИОНАЛЬНАЯ ВОЗМОЖНОСТЬ: Автоматический поиск исследований
+// ============================================================================
+
+async function scanResearch() {
+    if (!currentHypothesisId) {
+        showNotification('Сначала создайте гипотезу', 'error');
+        return;
+    }
+    
+    const btn = document.getElementById('btn-scan-research');
+    const loading = document.getElementById('auto-research-loading');
+    const emptyState = document.getElementById('auto-research-empty');
+    
+    btn.disabled = true;
+    btn.textContent = '⏳ Поиск...';
+    loading.classList.remove('hidden');
+    emptyState.classList.add('hidden');
+    document.getElementById('auto-research-list').innerHTML = '';
+    
+    showNotification('Ищем исследования в открытых источниках...', 'info');
+    
+    try {
+        const result = await apiCall(`/api/scan-research/${currentHypothesisId}`, 'POST');
+        
+        if (result && result.success) {
+            const count = result.research_count;
+            showNotification(`Найдено ${count} исследований!`, 'success');
+            
+            if (count > 0) {
+                displayAutoResearchList(result.research_sources);
+                emptyState.classList.add('hidden');
+            } else {
+                emptyState.classList.remove('hidden');
+                emptyState.innerHTML = '<p style="color: #999; padding: 20px;">Исследования не найдены.</p>';
+            }
+        } else {
+            showNotification(result?.error || 'Ошибка поиска', 'error');
+            emptyState.classList.remove('hidden');
+        }
+    } catch (error) {
+        showNotification(`Ошибка: ${error.message}`, 'error');
+        emptyState.classList.remove('hidden');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '🔍 Найти исследования в открытых источниках';
+        loading.classList.add('hidden');
+    }
+}
+
+function displayAutoResearchList(sources) {
+    const list = document.getElementById('auto-research-list');
+    list.innerHTML = '';
+    
+    if (!sources || sources.length === 0) {
+        list.innerHTML = '<p style="color: #999; padding: 20px;">Нет найденных исследований</p>';
+        return;
+    }
+    
+    sources.forEach((source) => {
+        const item = document.createElement('div');
+        item.className = 'auto-research-item';
+        item.onclick = () => showResearchDetailModal(source);
+        item.style.cursor = 'pointer';
+        
+        const relevance = source.relevance_score || 0;
+        let verdict = '';
+        let verdictClass = '';
+        let trustLevel = '';
+        let trustPercent = 0;
+        
+        if (relevance >= 0.8) {
+            verdict = '✅ Сильное доказательство';
+            verdictClass = 'verdict-strong';
+            trustLevel = 'Высокая';
+            trustPercent = Math.round(relevance * 100);
+        } else if (relevance >= 0.6) {
+            verdict = '⚠️ Умеренное доказательство';
+            verdictClass = 'verdict-moderate';
+            trustLevel = 'Средняя';
+            trustPercent = Math.round(relevance * 100);
+        } else if (relevance >= 0.4) {
+            verdict = '❓ Слабое доказательство';
+            verdictClass = 'verdict-weak';
+            trustLevel = 'Низкая';
+            trustPercent = Math.round(relevance * 100);
+        } else {
+            verdict = '❌ Незначительное';
+            verdictClass = 'verdict-minimal';
+            trustLevel = 'Очень низкая';
+            trustPercent = Math.round(relevance * 100);
+        }
+        
+        const year = source.year || 'N/A';
+        const authors = source.authors && source.authors.length > 0 
+            ? source.authors.join(', ').substring(0, 80) 
+            : 'Авторы не указаны';
+        
+        item.innerHTML = `
+            <div class="auto-research-info">
+                <div class="auto-research-header">
+                    <div class="auto-research-title">${source.title || 'Без названия'}</div>
+                    <span class="verdict-badge ${verdictClass}">${verdict}</span>
+                </div>
+                <div class="auto-research-meta">
+                    <span class="meta-item">📅 ${year}</span>
+                    <span class="meta-item">👥 ${authors}</span>
+                    <span class="meta-item">📊 Релевантность: ${(relevance * 100).toFixed(0)}%</span>
+                </div>
+                <div class="auto-research-abstract">${source.abstract ? source.abstract.substring(0, 150) + '...' : 'Нет аннотации'}</div>
+                <div class="auto-research-trust">
+                    <div class="trust-label">Доверие: ${trustLevel} (${trustPercent}%)</div>
+                    <div class="trust-bar">
+                        <div class="trust-fill" style="width: ${trustPercent}%; background: ${getTrustColor(trustPercent)}"></div>
+                    </div>
+                </div>
+                ${source.url ? `<div class="auto-research-url"><a href="${source.url}" target="_blank">🔗 Источник</a></div>` : ''}
+            </div>
+            <div class="auto-research-click-hint">Нажмите для деталей →</div>
+        `;
+        
+        list.appendChild(item);
+    });
+}
+
+function getTrustColor(percent) {
+    if (percent >= 80) return '#16a34a';
+    if (percent >= 60) return '#ca8a04';
+    if (percent >= 40) return '#ea580c';
+    return '#dc2626';
+}
+
+function showResearchDetailModal(source) {
+    const modal = document.getElementById('research-modal');
+    const relevance = source.relevance_score || 0;
+
+    document.getElementById('modal-title').textContent = source.title || 'Без названия';
+    document.getElementById('modal-authors').textContent =
+        (source.authors && source.authors.length > 0) ? source.authors.join(', ') : 'Не указаны';
+    document.getElementById('modal-year').textContent = source.year || 'N/A';
+    document.getElementById('modal-source').textContent = source.source || 'Не указан';
+
+    const urlEl = document.getElementById('modal-url');
+    if (source.url) {
+        urlEl.innerHTML = '<a href="' + source.url + '" target="_blank">' + source.url + '</a>';
+    } else {
+        urlEl.textContent = 'Не указана';
+    }
+
+    const verdictEl = document.getElementById('modal-verdict');
+    let verdictText, verdictClass, trustLevel;
+    if (relevance >= 0.8) {
+        verdictText = '✅ Сильное доказательство';
+        verdictClass = 'verdict-strong';
+        trustLevel = 'Высокая';
+    } else if (relevance >= 0.6) {
+        verdictText = '⚠️ Умеренное доказательство';
+        verdictClass = 'verdict-moderate';
+        trustLevel = 'Средняя';
+    } else if (relevance >= 0.4) {
+        verdictText = '❓ Слабое доказательство';
+        verdictClass = 'verdict-weak';
+        trustLevel = 'Низкая';
+    } else {
+        verdictText = '❌ Незначительное';
+        verdictClass = 'verdict-minimal';
+        trustLevel = 'Очень низкая';
+    }
+    verdictEl.textContent = verdictText;
+    verdictEl.className = 'detail-value verdict-badge ' + verdictClass;
+
+    document.getElementById('modal-confidence').textContent =
+        trustLevel + ' (' + (relevance * 100).toFixed(0) + '%)';
+
+    document.getElementById('modal-abstract').textContent = source.abstract || 'Аннотация отсутствует';
+
+    modal.classList.remove('hidden');
+}
+
+function closeResearchModal() {
+    document.getElementById('research-modal').classList.add('hidden');
+}
+
+document.addEventListener('click', function (e) {
+    const modal = document.getElementById('research-modal');
+    if (modal && e.target === modal) {
+        modal.classList.add('hidden');
+    }
+});
 // ============================================================================
 
 async function exportHypothesis() {

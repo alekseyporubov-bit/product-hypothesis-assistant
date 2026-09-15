@@ -83,3 +83,8 @@ uploads/
 *_test_hypotheses_data.json
 temp_*
 test_*.json
+
+# Runtime persisted data (JSON storage) — never commit user data
+hypotheses_data.json
+*.lock
+*.corrupt-*

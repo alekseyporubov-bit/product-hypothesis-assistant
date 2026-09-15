@@ -43,11 +43,19 @@
   - requests ✅
   - gunicorn ✅
   - python-dotenv ✅
+  - psycopg2-binary ✅
 
 ### Конфигурация
 - [ ] `.env` файл создан из `.env.example`
 - [ ] `FLASK_ENV=production` установлен
 - [ ] Нет чувствительных данных в коде
+
+### 🗄️ PostgreSQL (сохранение данных)
+- [ ] База данных добавлена в проекте («Базы данных»)
+- [ ] `DATABASE_URL` задан в переменных окружения
+- [ ] `psycopg2-binary` есть в `requirements.txt`
+- [ ] Таблица `hypotheses` создаётся автоматически при старте
+- [ ] Проверено, что гипотеза не пропадает после редеплоя (см. `POSTGRES_SETUP.md`)
 
 ### Frontend
 - [ ] `templates/` директория существует
@@ -96,10 +104,11 @@
 Установите переменные окружения:
 - [ ] `FLASK_ENV=production`
 - [ ] `PYTHONUNBUFFERED=1`
+- [ ] `DATABASE_URL` — строка подключения PostgreSQL (сохранение гипотез; см. `POSTGRES_SETUP.md`)
 
 Установите точку входа:
 ```
-gunicorn --bind 0.0.0.0:$PORT --workers 4 app:app
+gunicorn --bind 0.0.0.0:$PORT --workers 1 app:app
 ```
 
 ---

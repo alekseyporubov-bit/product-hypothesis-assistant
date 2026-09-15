@@ -15,7 +15,9 @@ from enum import Enum
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 import json
+import os
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 from research_finder import ResearchFinder
 
@@ -197,6 +199,7 @@ class Hypothesis:
             "evidence_count": len(self.evidence),
             "auto_research_sources": self.auto_research_sources,
             "auto_research_count": len(self.auto_research_sources),
+            "survey_questions": [q.to_dict() for q in self.survey_questions],
             "survey_questions_count": len(self.survey_questions),
             "created_at": self.created_at.isoformat(),
             "updated_at": self.updated_at.isoformat(),
@@ -404,12 +407,41 @@ class HypothesisManager:
     # Файл для сохранения гипотез
     STORAGE_FILE = "hypotheses_data.json"
     
-    def __init__(self):
+    def __init__(self, storage_file: Optional[str] = None):
         self.hypotheses: Dict[str, Hypothesis] = {}
         self.scoring_engine = ScoringEngine()
-        # Загружаем сохраненные данные при инициализации
-        self.load_from_file()
+
+        # Разрешаем путь к файлу данных: аргумент > env DATA_FILE > значение по умолчанию
+        self.STORAGE_FILE = (
+            storage_file
+            or os.environ.get("DATA_FILE")
+            or self.STORAGE_FILE
+        )
+
+        # Реляционная БД PostgreSQL имеет приоритет над JSON-файлом.
+        # Без DATABASE_URL используется прежнее файловое хранилище.
+        self.db_url = (
+            os.environ.get("DATABASE_URL")
+            or os.environ.get("POSTGRES_URL")
+            or ""
+        ).strip()
+        self.use_postgres = bool(self.db_url)
+
+        if self.use_postgres:
+            print("🗄️ PostgreSQL включён (DATABASE_URL задан)")
+            self._ensure_db_table()
+            self.load_from_file()
+        else:
+            self._ensure_storage_dir()
+            # Загружаем сохраненные данные при инициализации
+            self.load_from_file()
     
+    def _ensure_storage_dir(self) -> None:
+        """Создаёт родительскую директорию файла данных, если её ещё нет."""
+        parent = Path(self.STORAGE_FILE).parent
+        if str(parent) not in ('.', ''):
+            parent.mkdir(parents=True, exist_ok=True)
+
     def create_hypothesis(self, title: str, description: str, 
                          problem_statement: str, target_users: str,
                          expected_outcome: str) -> Hypothesis:
@@ -540,15 +572,195 @@ class HypothesisManager:
     # PERSISTENCE: Сохранение и загрузка данных в JSON файл
     # ========================================================================
     
+    def _atomic_write_json(self, data: Dict) -> None:
+        """Пишет JSON во временный файл и атомарно подменяет основной."""
+        tmp_path = Path(str(self.STORAGE_FILE) + '.tmp')
+        with open(tmp_path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2, default=str)
+            f.flush()
+            os.fsync(f.fileno())
+        os.replace(tmp_path, self.STORAGE_FILE)
+
+    @contextmanager
+    def _storage_lock(self):
+        """Блокировка записи, чтобы несколько процессов не перезаписывали файл."""
+        lock_path = Path(str(self.STORAGE_FILE) + '.lock')
+        self._ensure_storage_dir()
+        fh = open(lock_path, 'w')
+        try:
+            try:
+                import fcntl
+                fcntl.flock(fh, fcntl.LOCK_EX)
+            except (ImportError, OSError):
+                pass
+            yield
+        finally:
+            try:
+                import fcntl
+                fcntl.flock(fh, fcntl.LOCK_UN)
+            except (ImportError, OSError):
+                pass
+            fh.close()
+
+    def _backup_corrupt_file(self) -> None:
+        """Перемещает повреждённый файл в бэкап, чтобы не потерять данные молча."""
+        path = Path(self.STORAGE_FILE)
+        if not path.exists():
+            return
+        stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
+        backup = Path(str(self.STORAGE_FILE) + f'.corrupt-{stamp}')
+        try:
+            os.replace(path, backup)
+            print(f"⚠️ Файл {self.STORAGE_FILE} повреждён. Создана копия: {backup}")
+        except Exception as e:
+            print(f"❌ Не удалось создать резервную копию {self.STORAGE_FILE}: {e}")
+
+    # ========================================================================
+    # PERSISTENCE: Сохранение в реляционную БД PostgreSQL (DATABASE_URL)
+    # ========================================================================
+
+    POSTGRES_TABLE = "hypotheses"
+
+    # RelaxDev: «TLS не используется. База доступна только из внутренней сети,
+    # поэтому в коде укажите ssl: false, а из строки уберите sslmode=require,
+    # ssl=true и channel_binding». Эти параметры вырезаем из DATABASE_URL.
+    _BLOCKED_SSL_PARAMS = frozenset(
+        {"sslmode", "ssl", "channel_binding", "sslcert", "sslkey", "sslrootcert"}
+    )
+
+    @classmethod
+    def _normalize_postgres_url(cls, db_url: str) -> str:
+        """Убирает SSL-параметры из строки подключения (RelaxDev работает без TLS)."""
+        import urllib.parse as _urlparse
+
+        parsed = _urlparse.urlsplit(db_url)
+        query = [
+            (k, v)
+            for k, v in _urlparse.parse_qsl(parsed.query, keep_blank_values=True)
+            if k.lower() not in cls._BLOCKED_SSL_PARAMS
+        ]
+        return _urlparse.urlunsplit(
+            (
+                parsed.scheme,
+                parsed.netloc,
+                parsed.path,
+                _urlparse.urlencode(query),
+                parsed.fragment,
+            )
+        )
+
+    def _get_postgres_connection(self):
+        """Открывает новое соединение с PostgreSQL по DATABASE_URL (без SSL)."""
+        try:
+            import psycopg2
+        except ImportError as e:
+            raise RuntimeError(
+                "Библиотека psycopg2 не установлена. Добавьте 'psycopg2-binary' "
+                "в requirements.txt и выполните pip install."
+            ) from e
+        # RelaxDev не поддерживает TLS: принудительно отключаем SSL.
+        return psycopg2.connect(
+            self._normalize_postgres_url(self.db_url), sslmode="disable"
+        )
+
+    def _ensure_db_table(self) -> bool:
+        """Идемпотентно создаёт таблицу hypotheses, если её ещё нет."""
+        try:
+            conn = self._get_postgres_connection()
+        except Exception as e:
+            print(f"⚠️ PostgreSQL: не удалось подключиться ({e})")
+            return False
+        try:
+            with conn, conn.cursor() as cur:
+                cur.execute(
+                    f"""
+                    CREATE TABLE IF NOT EXISTS {self.POSTGRES_TABLE} (
+                        id UUID PRIMARY KEY,
+                        data JSONB NOT NULL,
+                        updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+                    )
+                    """
+                )
+            print(f"🗄️ PostgreSQL: таблица '{self.POSTGRES_TABLE}' готова")
+            return True
+        except Exception as e:
+            print(f"⚠️ PostgreSQL: не удалось создать таблицу '{self.POSTGRES_TABLE}': {e}")
+            return False
+        finally:
+            conn.close()
+
+    def _save_to_postgres(self) -> bool:
+        """Сохраняет все гипотезы в PostgreSQL (одна строка на гипотезу)."""
+        try:
+            import psycopg2.extras
+        except ImportError:
+            return False
+        try:
+            conn = self._get_postgres_connection()
+        except Exception as e:
+            print(f"❌ Ошибка сохранения в PostgreSQL: {e}")
+            return False
+        try:
+            with conn, conn.cursor() as cur:
+                for h_id, h in self.hypotheses.items():
+                    payload = psycopg2.extras.Json(
+                        h.to_dict(),
+                        dumps=lambda obj: json.dumps(obj, ensure_ascii=False, default=str),
+                    )
+                    cur.execute(
+                        f"""
+                        INSERT INTO {self.POSTGRES_TABLE} (id, data, updated_at)
+                        VALUES (%s, %s, now())
+                        ON CONFLICT (id)
+                        DO UPDATE SET data = EXCLUDED.data, updated_at = now()
+                        """,
+                        (h_id, payload),
+                    )
+            print(f"🗄️ Данные сохранены в PostgreSQL ({len(self.hypotheses)} гипотез)")
+            return True
+        except Exception as e:
+            print(f"❌ Ошибка сохранения в PostgreSQL: {e}")
+            return False
+        finally:
+            conn.close()
+
+    def _load_from_postgres(self) -> bool:
+        """Загружает все гипотезы из PostgreSQL."""
+        try:
+            conn = self._get_postgres_connection()
+        except Exception as e:
+            print(f"❌ Ошибка загрузки из PostgreSQL: {e}")
+            return False
+        try:
+            with conn, conn.cursor() as cur:
+                cur.execute(
+                    f"SELECT id, data FROM {self.POSTGRES_TABLE} ORDER BY updated_at"
+                )
+                rows = cur.fetchall()
+            for h_id, data in rows:
+                if isinstance(data, str):
+                    data = json.loads(data)
+                hypothesis = self._hypothesis_from_dict(data)
+                self.hypotheses[h_id] = hypothesis
+            print(f"🗄️ Загружено {len(self.hypotheses)} гипотез из PostgreSQL")
+            return True
+        except Exception as e:
+            print(f"❌ Ошибка загрузки из PostgreSQL: {e}")
+            return False
+        finally:
+            conn.close()
+
     def save_to_file(self) -> bool:
-        """Сохраняет все гипотезы в JSON файл"""
+        """Сохраняет все гипотезы (PostgreSQL при наличии DATABASE_URL, иначе JSON)."""
+        if getattr(self, "use_postgres", False):
+            return self._save_to_postgres()
         try:
             data = {
                 h_id: h.to_dict() 
                 for h_id, h in self.hypotheses.items()
             }
-            with open(self.STORAGE_FILE, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2, default=str)
+            with self._storage_lock():
+                self._atomic_write_json(data)
             print(f"💾 Данные сохранены в {self.STORAGE_FILE} ({len(self.hypotheses)} гипотез)")
             return True
         except Exception as e:
@@ -556,14 +768,26 @@ class HypothesisManager:
             return False
     
     def load_from_file(self) -> bool:
-        """Загружает гипотезы из JSON файла"""
+        """Загружает гипотезы (из PostgreSQL при наличии DATABASE_URL, иначе из JSON)."""
+        if getattr(self, "use_postgres", False):
+            return self._load_from_postgres()
         try:
             if not Path(self.STORAGE_FILE).exists():
                 print(f"📁 Файл {self.STORAGE_FILE} не найден, начата работа с пустым хранилищем")
                 return True  # Файл еще не создан - это нормально
             
             with open(self.STORAGE_FILE, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+                raw = f.read()
+
+            try:
+                data = json.loads(raw)
+            except Exception:
+                self._backup_corrupt_file()
+                return True  # Файл повреждён — начинаем с пустого, данные сохранены в бэкап
+
+            if not isinstance(data, dict):
+                self._backup_corrupt_file()
+                return True
             
             # Восстанавливаем гипотезы из JSON
             for h_id, h_data in data.items():
@@ -599,6 +823,12 @@ class HypothesisManager:
             for evidence_data in data.get('evidence', []):
                 evidence = HypothesisManager._evidence_from_dict(evidence_data)
                 hypothesis.evidence.append(evidence)
+
+            # Восстанавливаем вопросы анкеты
+            for question_data in data.get('survey_questions', []):
+                hypothesis.survey_questions.append(
+                    HypothesisManager._survey_question_from_dict(question_data)
+                )
             
             # Восстанавливаем score если есть
             if data.get('score'):
@@ -615,6 +845,17 @@ class HypothesisManager:
             print(f"Ошибка восстановления гипотезы: {e}")
             raise
     
+    @staticmethod
+    def _survey_question_from_dict(data: Dict) -> SurveyQuestion:
+        """Восстанавливает объект SurveyQuestion из словаря."""
+        return SurveyQuestion(
+            id=data.get('id', str(uuid.uuid4())),
+            question=data.get('question', ''),
+            question_type=data.get('question_type', 'open'),
+            options=list(data.get('options', [])),
+            reasoning=data.get('reasoning', '')
+        )
+
     @staticmethod
     def _evidence_from_dict(data: Dict) -> Evidence:
         """Восстанавливает объект Evidence из словаря"""

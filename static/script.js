@@ -4,6 +4,7 @@
 
 let currentHypothesisId = null;
 let evidenceTypes = [];
+let currentUser = null;
 
 // ============================================================================
 // Инициализация
@@ -12,15 +13,20 @@ let evidenceTypes = [];
 document.addEventListener('DOMContentLoaded', async () => {
     // Загружаем типы доказательств
     await loadEvidenceTypes();
-    
-    // Загружаем список гипотез
-    await loadHypotheses();
-    
+
     // Настраиваем обработчики форм
     setupFormHandlers();
-    
-    // Показываем welcome страницу
-    showSection('welcome');
+    setupAuthHandlers();
+
+    // Инициализируем Google Sign-In (если задан GOOGLE_CLIENT_ID)
+    initGoogleSignIn();
+
+    // Проверяем авторизацию: неавторизованные видят экран входа
+    const authed = await checkAuth();
+    if (authed) {
+        await loadHypotheses();
+        showSection('welcome');
+    }
 });
 
 // ============================================================================
@@ -41,6 +47,14 @@ async function apiCall(endpoint, method = 'GET', data = null) {
     
     try {
         const response = await fetch(endpoint, options);
+
+        // Сессия истекла или пользователь вышел — показываем экран входа
+        if (response.status === 401) {
+            currentUser = null;
+            updateAuthUI();
+            return null;
+        }
+
         const result = await response.json();
         
         if (!response.ok && result.error) {
@@ -68,6 +82,235 @@ async function loadHypotheses() {
     if (result && result.success) {
         displayHypotheses(result.hypotheses);
     }
+}
+
+// ============================================================================
+// Аутентификация Google
+// ============================================================================
+
+function showAuthGate() {
+    document.getElementById('auth-gate').classList.remove('hidden');
+}
+
+function hideAuthGate() {
+    document.getElementById('auth-gate').classList.add('hidden');
+}
+
+function clearHypothesesList() {
+    const list = document.getElementById('hypotheses-list');
+    if (list) {
+        list.innerHTML = '<p style="color: #999; font-size: 13px;">Нет гипотез</p>';
+    }
+    currentHypothesisId = null;
+}
+
+function updateAuthUI() {
+    const userChip = document.getElementById('auth-user');
+
+    if (currentUser) {
+        document.getElementById('auth-name').textContent =
+            currentUser.name || currentUser.email || 'Пользователь';
+        document.getElementById('auth-email').textContent = currentUser.email || '';
+
+        const avatar = document.getElementById('auth-avatar');
+        if (currentUser.avatar_url) {
+            avatar.textContent = '';
+            avatar.style.backgroundImage = `url('${currentUser.avatar_url}')`;
+        } else {
+            avatar.style.backgroundImage = '';
+            avatar.textContent = (currentUser.name || 'U').charAt(0).toUpperCase();
+        }
+
+        userChip.classList.remove('hidden');
+        hideAuthGate();
+    } else {
+        userChip.classList.add('hidden');
+        showAuthGate();
+    }
+}
+
+async function checkAuth() {
+    const result = await apiCall('/api/auth/status', 'GET');
+    if (result && result.authenticated) {
+        currentUser = result.user;
+        updateAuthUI();
+        return true;
+    }
+    currentUser = null;
+    updateAuthUI();
+    return false;
+}
+
+async function logout() {
+    await apiCall('/api/auth/logout', 'POST');
+    currentUser = null;
+    updateAuthUI();
+    clearHypothesesList();
+    showSection('welcome');
+}
+
+async function handleGoogleCredential(response) {
+    if (!response || !response.credential) {
+        showAuthError('Не удалось получить Google ID token');
+        return;
+    }
+
+    const result = await postAuth('/api/auth/login', {
+        credential: response.credential,
+    });
+
+    if (result && result.success) {
+        await onAuthSuccess(result);
+    }
+}
+
+function initGoogleSignIn() {
+    const hint = document.getElementById('auth-config-hint');
+    const button = document.getElementById('g_id_signin');
+
+    if (!window.GOOGLE_CLIENT_ID) {
+        if (hint) hint.classList.remove('hidden');
+        return;
+    }
+
+    if (!(window.google && window.google.accounts && window.google.accounts.id)) {
+        if (hint) {
+            hint.textContent = '⚠️ Не удалось загрузить Google Sign-In. Проверьте подключение к интернету.';
+            hint.classList.remove('hidden');
+        }
+        return;
+    }
+
+    window.google.accounts.id.initialize({
+        client_id: window.GOOGLE_CLIENT_ID,
+        callback: handleGoogleCredential,
+    });
+    window.google.accounts.id.renderButton(button, {
+        theme: 'outline',
+        size: 'large',
+        width: 260,
+    });
+}
+
+// ============================================================================
+// Логин / регистрация по логину и паролю
+// ============================================================================
+
+function switchAuthMode(mode) {
+    const isLogin = mode === 'login';
+    document.getElementById('auth-tab-login').classList.toggle('active', isLogin);
+    document.getElementById('auth-tab-register').classList.toggle('active', !isLogin);
+    document.getElementById('login-form').classList.toggle('hidden', !isLogin);
+    document.getElementById('register-form').classList.toggle('hidden', isLogin);
+    clearAuthError();
+}
+
+function showAuthError(message) {
+    const el = document.getElementById('auth-error');
+    if (el) {
+        el.textContent = message;
+        el.classList.remove('hidden');
+    }
+}
+
+function clearAuthError() {
+    const el = document.getElementById('auth-error');
+    if (el) {
+        el.textContent = '';
+        el.classList.add('hidden');
+    }
+}
+
+async function postAuth(endpoint, payload) {
+    clearAuthError();
+    try {
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const result = await response.json().catch(() => null);
+        if (!response.ok) {
+            showAuthError((result && result.error) || 'Ошибка входа');
+            return null;
+        }
+        return result;
+    } catch (error) {
+        showAuthError('Ошибка сети: ' + error.message);
+        return null;
+    }
+}
+
+async function onAuthSuccess(result) {
+    currentUser = result.user;
+    updateAuthUI();
+    clearAuthError();
+
+    document.getElementById('login-password').value = '';
+    document.getElementById('register-password').value = '';
+    document.getElementById('register-password2').value = '';
+
+    showNotification(
+        `Добро пожаловать, ${currentUser.name || currentUser.email || currentUser.login || ''}!`,
+        'success'
+    );
+    await loadHypotheses();
+    showSection('welcome');
+}
+
+async function handlePasswordLogin(event) {
+    event.preventDefault();
+    const login = document.getElementById('login-username').value.trim();
+    const password = document.getElementById('login-password').value;
+
+    if (!login || !password) {
+        showAuthError('Укажите логин и пароль');
+        return;
+    }
+
+    const result = await postAuth('/api/auth/password-login', { login, password });
+    if (result && result.success) {
+        await onAuthSuccess(result);
+    }
+}
+
+async function handleRegister(event) {
+    event.preventDefault();
+    const login = document.getElementById('register-username').value.trim();
+    const password = document.getElementById('register-password').value;
+    const password2 = document.getElementById('register-password2').value;
+
+    if (!login || !password) {
+        showAuthError('Укажите логин и пароль');
+        return;
+    }
+    if (password !== password2) {
+        showAuthError('Пароли не совпадают');
+        return;
+    }
+    // Клиентская валидация сложности (дублирует серверную).
+    if (password.length < 8) {
+        showAuthError('Пароль должен быть не короче 8 символов');
+        return;
+    }
+    if (!/[A-Za-zА-Яа-яЁё]/.test(password)) {
+        showAuthError('Пароль должен содержать хотя бы одну букву');
+        return;
+    }
+    if (!/[0-9]/.test(password)) {
+        showAuthError('Пароль должен содержать хотя бы одну цифру');
+        return;
+    }
+
+    const result = await postAuth('/api/auth/register', { login, password });
+    if (result && result.success) {
+        await onAuthSuccess(result);
+    }
+}
+
+function setupAuthHandlers() {
+    document.getElementById('login-form').addEventListener('submit', handlePasswordLogin);
+    document.getElementById('register-form').addEventListener('submit', handleRegister);
 }
 
 // ============================================================================
@@ -740,3 +983,5 @@ window.validateHypothesis = validateHypothesis;
 window.showOutcomeForm = showOutcomeForm;
 window.exportHypothesis = exportHypothesis;
 window.showCorrelationAnalysis = showCorrelationAnalysis;
+window.switchAuthMode = switchAuthMode;
+window.logout = logout;

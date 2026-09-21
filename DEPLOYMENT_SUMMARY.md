@@ -125,13 +125,13 @@ PORT=5000
 Используйте эту команду на relaxdev.ru:
 
 ```
-gunicorn --bind 0.0.0.0:$PORT --workers 4 --timeout 120 app:app
+gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 app:app
 ```
 
 Или если используете wsgi.py:
 
 ```
-gunicorn --bind 0.0.0.0:$PORT --workers 4 wsgi:app
+gunicorn --bind 0.0.0.0:$PORT --workers 1 wsgi:app
 ```
 
 ---

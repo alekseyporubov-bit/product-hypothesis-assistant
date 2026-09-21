@@ -5,14 +5,84 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Product Hypothesis Assistant</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script>window.GOOGLE_CLIENT_ID = "{{ google_client_id }}";</script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 </head>
 <body>
+    <!-- Экран входа: виден неавторизованным посетителям -->
+    <div id="auth-gate" class="auth-gate">
+        <div class="auth-gate-card">
+            <h2>🔐 Вход в систему</h2>
+            <p>Войдите или создайте аккаунт, чтобы работать со своими гипотезами.<br>
+               Данные каждого пользователя хранятся изолированно.</p>
+
+            <div id="g_id_signin" class="google-signin-block"></div>
+            <p id="auth-config-hint" class="auth-hint hidden">
+                ⚠️ GOOGLE_CLIENT_ID не настроен — вход через Google недоступен
+                (можно войти по логину и паролю ниже).
+            </p>
+
+            <div class="auth-divider"><span>или по логину и паролю</span></div>
+
+            <div class="auth-tabs">
+                <button type="button" id="auth-tab-login" class="auth-tab active"
+                        onclick="switchAuthMode('login')">Войти</button>
+                <button type="button" id="auth-tab-register" class="auth-tab"
+                        onclick="switchAuthMode('register')">Регистрация</button>
+            </div>
+
+            <form id="login-form" class="auth-form">
+                <div class="form-group">
+                    <label for="login-username">Логин</label>
+                    <input type="text" id="login-username" autocomplete="username"
+                           placeholder="Ваш логин">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Пароль</label>
+                    <input type="password" id="login-password" autocomplete="current-password"
+                           placeholder="Ваш пароль">
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Войти</button>
+            </form>
+
+            <form id="register-form" class="auth-form hidden">
+                <div class="form-group">
+                    <label for="register-username">Логин</label>
+                    <input type="text" id="register-username" autocomplete="username"
+                           placeholder="Придумайте логин">
+                </div>
+                <div class="form-group">
+                    <label for="register-password">Пароль</label>
+                    <input type="password" id="register-password" autocomplete="new-password"
+                           placeholder="Придумайте пароль">
+                </div>
+                <div class="form-group">
+                    <label for="register-password2">Повторите пароль</label>
+                    <input type="password" id="register-password2" autocomplete="new-password"
+                           placeholder="Повторите пароль">
+                </div>
+                <p class="auth-rules">Пароль: минимум 8 символов, должен содержать буквы и цифры.</p>
+                <button type="submit" class="btn btn-primary btn-block">Создать аккаунт</button>
+            </form>
+
+            <p id="auth-error" class="auth-error hidden"></p>
+        </div>
+    </div>
+
     <div class="container">
         <!-- Шапка -->
         <header class="header">
             <div class="header-content">
                 <h1>🎯 Product Hypothesis Assistant</h1>
                 <p>Система поддержки принятия решений продуктового менеджера</p>
+            </div>
+            <div id="auth-user" class="header-user hidden">
+                <span id="auth-avatar" class="auth-avatar"></span>
+                <div class="auth-user-info">
+                    <span id="auth-name" class="auth-name"></span>
+                    <span id="auth-email" class="auth-email"></span>
+                </div>
+                <button class="btn btn-logout" onclick="logout()">Выйти</button>
             </div>
         </header>
 

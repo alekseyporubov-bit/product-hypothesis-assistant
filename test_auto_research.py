@@ -14,20 +14,15 @@ import tempfile
 
 from product_hypothesis_assistant import (
     HypothesisManager,
-    ScoringEngine,
     Hypothesis,
 )
 
 API_URL = "http://localhost:5000/api"
 
 
-def _make_manager(tmp_file):
-    """Создаёт менеджер с изолированным хранилищем (без реального файла данных)."""
-    manager = HypothesisManager.__new__(HypothesisManager)
-    manager.hypotheses = {}
-    manager.scoring_engine = ScoringEngine()
-    manager.STORAGE_FILE = tmp_file
-    return manager
+def _make_manager(tmp_file=None):
+    """Создаёт менеджер без реальной БД (данные только в памяти)."""
+    return HypothesisManager()
 
 
 def test_serialization_roundtrip():

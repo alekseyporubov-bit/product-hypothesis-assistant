@@ -4,17 +4,18 @@
 
 Раньше гипотезы сохранялись в JSON-файл (`hypotheses_data.json`). На RelaxDev
 файловая система контейнера **эфемерная**: при каждом редеплое файл стирался,
-поэтому данные терялись.
+поэтому данные терялись. Локальный JSON-файл больше не используется — хранение
+гипотез полностью переведено на **PostgreSQL**.
 
-Теперь, если задана переменная окружения `DATABASE_URL`, все гипотезы
-сохраняются в **PostgreSQL** и переживают редеплой. Если `DATABASE_URL` не
-задана — приложение работает как раньше (JSON-файл), поэтому локальная
-разработка и старые тесты не ломаются.
+Все гипотезы сохраняются в **PostgreSQL** и переживают редеплой. Для этого
+нужна переменная окружения `DATABASE_URL`. Без неё данные хранятся только
+в памяти процесса (для локальной разработки/тестов) и **не сохраняются**
+между перезапусками.
 
 | Условие | Куда сохраняются данные |
 |---|---|
-| `DATABASE_URL` задан | PostgreSQL |
-| `DATABASE_URL` не задан | JSON-файл (старое поведение) |
+| `DATABASE_URL` задан | PostgreSQL (постоянно) |
+| `DATABASE_URL` не задан | только в памяти (не сохраняется) |
 
 ## Структура хранения
 
@@ -31,6 +32,40 @@ CREATE TABLE IF NOT EXISTS hypotheses (
 
 Одна гипотеза = одна строка. Полный документ гипотезы (evidence, score,
 survey_questions, auto_research_sources, outcome) лежит в колонке `data` (JSONB).
+
+### Многопользовательская изоляция (`user_id`)
+
+С добавлением Google-аутентификации в документ гипотезы (колонка `data`, JSONB)
+записывается поле `user_id`:
+
+```json
+{ "id": "…", "user_id": "uuid-пользователя", "title": "…", "status": "draft", "…" }
+```
+
+- Гипотезы **не мигрируются** и **не переносятся** между пользователями:
+  фильтрация по владельцу выполняется на уровне приложения
+  (`HypothesisManager.list_hypotheses(user_id=…)`).
+- Старые строки, где поле `user_id` отсутствует, читаются как `user_id = ""`
+  и считаются «сиротскими». Их автоматически забирает **первый** вошедший
+  пользователь (`claim_orphaned_hypotheses`). Повторная миграция БД не нужна.
+
+Также приложение создаёт вторую таблицу — `users` (учётные записи, создаваемые
+JIT при первом входе). Она тоже создаётся автоматически:
+
+```sql
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY,
+    data JSONB NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+Если нужен SQL-индекс для выборок по владельцу (масштабирование), его можно
+добавить вручную (idempotent):
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_hypotheses_user_id ON hypotheses ((data->>'user_id'));
+```
 
 ---
 
@@ -113,10 +148,9 @@ DATABASE_URL=postgresql://user:password@host:5432/dbname \
 DATABASE_URL=postgresql://user:password@host:5432/dbname \
   python3 test_postgres_persistence.py
 
-# Старые тесты (JSON-режим, без БД) — должны остаться зелёными
-python3 test_persistence.py
-python3 test_persistence_simple.py
-python3 test_ui_persistence.py
+# Тесты формулы score (без БД — данные только в памяти)
+python3 test_score_scale.py
+python3 test_score_confidence.py
 ```
 
 ---

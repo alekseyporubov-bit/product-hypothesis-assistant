@@ -91,7 +91,7 @@ PYTHONUNBUFFERED=1
 
 Точка входа (Entrypoint):
 ```
-gunicorn --bind 0.0.0.0:$PORT --workers 4 app:app
+gunicorn --bind 0.0.0.0:$PORT --workers 1 app:app
 ```
 
 Порт: relaxdev.ru установит автоматически

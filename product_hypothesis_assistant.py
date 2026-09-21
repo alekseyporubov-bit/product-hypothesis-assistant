@@ -17,8 +17,6 @@ from typing import List, Dict, Optional, Tuple
 import json
 import os
 import uuid
-from contextlib import contextmanager
-from pathlib import Path
 from research_finder import ResearchFinder
 
 
@@ -171,6 +169,7 @@ class Hypothesis:
     problem_statement: str = ""  # Какую проблему решает
     target_users: str = ""  # Кто целевые пользователи
     expected_outcome: str = ""  # Какой результат ожидается
+    user_id: str = ""  # Владелец гипотезы (пусто = не привязана/легаси)
     
     status: HypothesisStatus = HypothesisStatus.DRAFT
     score: Optional[HypothesisScore] = None
@@ -193,6 +192,7 @@ class Hypothesis:
             "problem_statement": self.problem_statement,
             "target_users": self.target_users,
             "expected_outcome": self.expected_outcome,
+            "user_id": self.user_id,
             "status": self.status.value,
             "score": self.score.to_dict() if self.score else None,
             "evidence": [e.to_dict() for e in self.evidence],
@@ -219,7 +219,8 @@ class ScoringEngine:
     Реализован вариант A ТЗ: LLM-агент с эвристическим скорингом.
     """
     
-    # Веса факторов (требуют калибровки на реальных данных - см. ТЗ п. 8)
+    # Веса факторов (информационные — с DL-002 не влияют на итоговый score,
+    # который считается по confidence-weighted формуле agreement × strength).
     FACTOR_WEIGHTS = {
         ScoringFactor.PROBLEM_SEVERITY: 0.20,
         ScoringFactor.MARKET_SIZE: 0.15,
@@ -228,6 +229,11 @@ class ScoringEngine:
         ScoringFactor.IMPLEMENTATION_EFFORT: 0.15,
         ScoringFactor.ALIGNMENT: 0.10,
     }
+
+    # Насыщение покрытия: при SUPPORT_SATURATION «надёжных» подтверждающих единиц
+    # strength = 1.0 (несколько надёжных источников + много положительных
+    # доказательств → score ≈ 100).
+    SUPPORT_SATURATION = 8.0
     
     @staticmethod
     def calculate_score(hypothesis: Hypothesis) -> HypothesisScore:
@@ -235,155 +241,180 @@ class ScoringEngine:
         Вычисляет итоговый score гипотезы.
         
         Процесс:
-        1. Анализирует собранные доказательства
+        1. Взвешивает доказательства по confidence (надёжности источников)
         2. Ищет подтверждающие исследования в открытых источниках
-        3. Вычисляет подобные по каждому фактору
-        4. Взвешивает по importance weights
+        3. Считает согласованность (agreement) и покрытие (strength) подтверждений
+        4. Итоговый score = 100 × agreement × strength (DL-002)
         5. Выдаёт confidence level и рекомендацию
         """
         
-        # Анализируем доказательства
+        # =========================================================================
+        # 1. Confidence-weighted сигнал доказательств (DL-002)
+        # =========================================================================
         supporting_count = sum(1 for e in hypothesis.evidence if e.supports)
         contradicting_count = sum(1 for e in hypothesis.evidence if not e.supports)
-        
-        # Вычисляем средний уровень уверенности доказательств
-        if hypothesis.evidence:
-            avg_confidence = sum(e.confidence for e in hypothesis.evidence) / len(hypothesis.evidence)
-        else:
-            avg_confidence = 0.0
-        
-        # Инициализируем ResearchFinder для поиска в открытых источниках
+
+        # Учитываем надёжность каждого источника: уверенное доказательство (0.9)
+        # вносит больший вклад в итог, чем слабое (0.2).
+        support_weight = sum(e.confidence for e in hypothesis.evidence if e.supports)
+        contradict_weight = sum(e.confidence for e in hypothesis.evidence if not e.supports)
+
+        # =========================================================================
+        # 2. Исследования из открытых источников (надёжный подтверждающий сигнал)
+        # =========================================================================
         research_finder = ResearchFinder()
-        
-        # Оцениваем каждый фактор (эвристическое вычисление)
-        breakdown: List[ScoreBreakdown] = []
-        factor_scores: Dict[ScoringFactor, float] = {}
-        
-        # Фактор 1: Серьёзность проблемы
-        # Оцениваем на основе:
-        # а) Доказательств пользователя
-        # б) Исследований из открытых источников
-        problem_evidence = sum(1 for e in hypothesis.evidence 
-                             if e.evidence_type == EvidenceType.MARKET_RESEARCH 
-                             and e.supports)
-        
-        # Ищем исследования в открытых источниках о проблеме
         research_analysis = research_finder.search_problem_severity(
             problem_statement=hypothesis.problem_statement,
             target_users=hypothesis.target_users
         )
         research_count = research_analysis.get("research_count", 0)
-        research_quality = research_analysis.get("average_relevance", 0)
-        
-        # Комбинируем оценку из доказательств пользователя и открытых исследований
-        # Вес: 40% от пользовательских доказательств, 60% от открытых исследований
-        user_evidence_score = min(10, problem_evidence * 2.5)
+        research_quality = research_analysis.get("average_relevance", 0.0)
+        research_sources = research_analysis.get("research_sources", [])
+
+        # Авто-исследования считаем подтверждающим сигналом, взвешенным по релевантности.
+        research_weight = min(research_count, 5) * research_quality
+
+        # =========================================================================
+        # 3. Информационная разбивка по факторам (confidence-weighted).
+        #    Не влияет на итоговый score — только детализация для UI (DL-002).
+        # =========================================================================
+        breakdown: List[ScoreBreakdown] = []
+
+        # Фактор 1: Серьёзность проблемы
+        problem_count = sum(
+            1 for e in hypothesis.evidence
+            if e.evidence_type == EvidenceType.MARKET_RESEARCH and e.supports
+        )
+        problem_weight = sum(
+            e.confidence for e in hypothesis.evidence
+            if e.evidence_type == EvidenceType.MARKET_RESEARCH and e.supports
+        )
+        user_evidence_score = min(10, problem_weight * 2.5)
         research_evidence_score = min(10, research_count * 1.5 + research_quality * 3)
         problem_score = user_evidence_score * 0.4 + research_evidence_score * 0.6
-        
-        factor_scores[ScoringFactor.PROBLEM_SEVERITY] = problem_score
-        
-        # Формируем детальное обоснование
-        rationale = f"Пользовательские доказательства: {problem_evidence} шт. | "
+
+        rationale = f"Пользовательские доказательства: {problem_count} шт. (confidence-вес {problem_weight:.2f}) | "
         rationale += f"Исследования из открытых источников: {research_count} (качество: {research_quality:.2f}) | "
         rationale += f"{research_analysis.get('recommendation', 'N/A')}"
-        
+
         breakdown.append(ScoreBreakdown(
             factor=ScoringFactor.PROBLEM_SEVERITY,
             score=problem_score,
             rationale=rationale,
-            evidence_count=problem_evidence + research_count
+            evidence_count=problem_count + research_count
         ))
         
         # Фактор 2: Размер рынка
-        market_evidence = sum(1 for e in hypothesis.evidence 
-                            if e.evidence_type == EvidenceType.MARKET_RESEARCH)
-        market_score = min(10, market_evidence * 2.0)
-        factor_scores[ScoringFactor.MARKET_SIZE] = market_score
+        market_count = sum(
+            1 for e in hypothesis.evidence
+            if e.evidence_type == EvidenceType.MARKET_RESEARCH
+        )
+        market_weight = sum(
+            e.confidence for e in hypothesis.evidence
+            if e.evidence_type == EvidenceType.MARKET_RESEARCH
+        )
+        market_score = min(10, market_weight * 2.0)
         breakdown.append(ScoreBreakdown(
             factor=ScoringFactor.MARKET_SIZE,
             score=market_score,
-            rationale=f"Наличие данных о размере рынка: {market_evidence} источников",
-            evidence_count=market_evidence
+            rationale=f"Наличие данных о размере рынка: {market_count} источников (confidence-вес {market_weight:.2f})",
+            evidence_count=market_count
         ))
-        
+
         # Фактор 3: Спрос пользователей
-        user_feedback = sum(1 for e in hypothesis.evidence 
-                          if e.evidence_type == EvidenceType.USER_FEEDBACK)
-        demand_score = min(10, user_feedback * 3.0)
-        factor_scores[ScoringFactor.USER_DEMAND] = demand_score
+        demand_count = sum(
+            1 for e in hypothesis.evidence
+            if e.evidence_type == EvidenceType.USER_FEEDBACK
+        )
+        demand_weight = sum(
+            e.confidence for e in hypothesis.evidence
+            if e.evidence_type == EvidenceType.USER_FEEDBACK
+        )
+        demand_score = min(10, demand_weight * 3.0)
         breakdown.append(ScoreBreakdown(
             factor=ScoringFactor.USER_DEMAND,
             score=demand_score,
-            rationale=f"Подтверждение спроса от пользователей: {user_feedback} упоминаний",
-            evidence_count=user_feedback
+            rationale=f"Подтверждение спроса от пользователей: {demand_count} упоминаний (confidence-вес {demand_weight:.2f})",
+            evidence_count=demand_count
         ))
-        
+
         # Фактор 4: Конкурентное преимущество
-        competitor_evidence = sum(1 for e in hypothesis.evidence 
-                                if e.evidence_type == EvidenceType.COMPETITOR_ANALYSIS)
-        competitive_score = min(10, competitor_evidence * 3.5)
-        factor_scores[ScoringFactor.COMPETITIVE_ADVANTAGE] = competitive_score
+        competitor_count = sum(
+            1 for e in hypothesis.evidence
+            if e.evidence_type == EvidenceType.COMPETITOR_ANALYSIS
+        )
+        competitor_weight = sum(
+            e.confidence for e in hypothesis.evidence
+            if e.evidence_type == EvidenceType.COMPETITOR_ANALYSIS
+        )
+        competitive_score = min(10, competitor_weight * 3.5)
         breakdown.append(ScoreBreakdown(
             factor=ScoringFactor.COMPETITIVE_ADVANTAGE,
             score=competitive_score,
-            rationale=f"Анализ конкурентного ландшафта: {competitor_evidence} источников",
-            evidence_count=competitor_evidence
+            rationale=f"Анализ конкурентного ландшафта: {competitor_count} источников (confidence-вес {competitor_weight:.2f})",
+            evidence_count=competitor_count
         ))
-        
-        # Фактор 5: Усилия реализации (инверсная - меньше усилий = выше score)
+
+        # Фактор 5: Усилия реализации (инверсная — меньше усилий = выше score)
         effort_score = 8.0  # По умолчанию высокий (требует отдельного анализа)
-        factor_scores[ScoringFactor.IMPLEMENTATION_EFFORT] = effort_score
         breakdown.append(ScoreBreakdown(
             factor=ScoringFactor.IMPLEMENTATION_EFFORT,
             score=effort_score,
             rationale="Оценка требует детального технического анализа",
             evidence_count=0
         ))
-        
+
         # Фактор 6: Соответствие стратегии
-        alignment_evidence = sum(1 for e in hypothesis.evidence 
-                               if e.evidence_type == EvidenceType.EXPERT_OPINION)
-        alignment_score = min(10, 5 + alignment_evidence * 1.5)
-        factor_scores[ScoringFactor.ALIGNMENT] = alignment_score
+        alignment_count = sum(
+            1 for e in hypothesis.evidence
+            if e.evidence_type == EvidenceType.EXPERT_OPINION
+        )
+        alignment_weight = sum(
+            e.confidence for e in hypothesis.evidence
+            if e.evidence_type == EvidenceType.EXPERT_OPINION
+        )
+        alignment_score = min(10, 5 + alignment_weight * 1.5)
         breakdown.append(ScoreBreakdown(
             factor=ScoringFactor.ALIGNMENT,
             score=alignment_score,
-            rationale=f"Мнение экспертов о стратегическом соответствии: {alignment_evidence} источников",
-            evidence_count=alignment_evidence
+            rationale=f"Мнение экспертов о стратегическом соответствии: {alignment_count} источников (confidence-вес {alignment_weight:.2f})",
+            evidence_count=alignment_count
         ))
         
-        # Вычисляем взвешенный score
-        weighted_score = sum(
-            factor_scores[factor] * weight 
-            for factor, weight in ScoringEngine.FACTOR_WEIGHTS.items()
-        )
-        
-        # Модифицируем на основе противоречащих доказательств
-        if contradicting_count > 0:
-            contradiction_penalty = (contradicting_count / max(1, supporting_count + contradicting_count)) * 20
-            weighted_score = max(0, weighted_score - contradiction_penalty)
-        
+        # =========================================================================
+        # 4. Итоговый score: согласованность × покрытие (DL-002)
+        # =========================================================================
+        total_support = support_weight + research_weight
+        total_weight = total_support + contradict_weight
+
+        # Доля подтверждающего сигнала (0..1): 1.0 если всё подтверждает,
+        # стремится к 0 если большинство доказательств опровергает проблему.
+        agreement = total_support / total_weight if total_weight > 0 else 0.0
+
+        # Покрытие надёжными источниками (0..1). Насыщается при SUPPORT_SATURATION
+        # «надёжных» подтверждающих единиц: несколько надёжных источников + много
+        # положительных доказательств дают strength, близкий к 1.
+        strength = min(1.0, total_support / ScoringEngine.SUPPORT_SATURATION)
+
+        overall = max(0.0, min(100.0, 100.0 * agreement * strength))
+
         # Определяем уровень уверенности
-        if weighted_score >= 70:
+        if overall >= 70:
             confidence_level = "high"
             recommendation = "proceed"  # Рекомендуем идти в разработку
-        elif weighted_score >= 50:
+        elif overall >= 50:
             confidence_level = "medium"
             recommendation = "investigate"  # Рекомендуем дополнительное исследование
         else:
             confidence_level = "low"
             recommendation = "reject"  # Рекомендуем отклонить
-        
+
         # Оцениваем полноту данных
         total_evidence = len(hypothesis.evidence)
         data_completeness = min(1.0, total_evidence / 10)  # 10+ доказательств = 100%
-        
-        # Собираем найденные исследования из открытых источников
-        research_sources = research_analysis.get("research_sources", [])
-        
+
         return HypothesisScore(
-            overall_score=min(100, weighted_score),
+            overall_score=round(overall, 2),
             confidence_level=confidence_level,
             breakdown=breakdown,
             supporting_evidence_count=supporting_count,
@@ -404,22 +435,13 @@ class HypothesisManager:
     Реализует workflow TDPD: Context → Problem → Input → Red → Green → Output/UAT
     """
     
-    # Файл для сохранения гипотез
-    STORAGE_FILE = "hypotheses_data.json"
     
-    def __init__(self, storage_file: Optional[str] = None):
+    def __init__(self):
         self.hypotheses: Dict[str, Hypothesis] = {}
         self.scoring_engine = ScoringEngine()
 
-        # Разрешаем путь к файлу данных: аргумент > env DATA_FILE > значение по умолчанию
-        self.STORAGE_FILE = (
-            storage_file
-            or os.environ.get("DATA_FILE")
-            or self.STORAGE_FILE
-        )
-
-        # Реляционная БД PostgreSQL имеет приоритет над JSON-файлом.
-        # Без DATABASE_URL используется прежнее файловое хранилище.
+        # Единственное хранилище — PostgreSQL (DATABASE_URL / POSTGRES_URL).
+        # Без строки подключения данные живут только в памяти процесса.
         self.db_url = (
             os.environ.get("DATABASE_URL")
             or os.environ.get("POSTGRES_URL")
@@ -430,21 +452,13 @@ class HypothesisManager:
         if self.use_postgres:
             print("🗄️ PostgreSQL включён (DATABASE_URL задан)")
             self._ensure_db_table()
-            self.load_from_file()
+            self.load()
         else:
-            self._ensure_storage_dir()
-            # Загружаем сохраненные данные при инициализации
-            self.load_from_file()
-    
-    def _ensure_storage_dir(self) -> None:
-        """Создаёт родительскую директорию файла данных, если её ещё нет."""
-        parent = Path(self.STORAGE_FILE).parent
-        if str(parent) not in ('.', ''):
-            parent.mkdir(parents=True, exist_ok=True)
+            print("⚠️ DATABASE_URL не задан — данные хранятся только в памяти и не сохраняются")
 
     def create_hypothesis(self, title: str, description: str, 
                          problem_statement: str, target_users: str,
-                         expected_outcome: str) -> Hypothesis:
+                         expected_outcome: str, user_id: str = "") -> Hypothesis:
         """Создаёт новую гипотезу (Context + Problem этапы TDPD)"""
         hypothesis = Hypothesis(
             title=title,
@@ -452,38 +466,43 @@ class HypothesisManager:
             problem_statement=problem_statement,
             target_users=target_users,
             expected_outcome=expected_outcome,
+            user_id=user_id or "",
             status=HypothesisStatus.DRAFT
         )
         self.hypotheses[hypothesis.id] = hypothesis
-        self.save_to_file()  # ← Сохраняем в JSON
+        self.save()  # ← Сохраняем в БД
         return hypothesis
     
-    def add_evidence(self, hypothesis_id: str, evidence: Evidence) -> bool:
+    def add_evidence(self, hypothesis_id: str, evidence: Evidence,
+                     user_id: Optional[str] = None) -> bool:
         """Добавляет доказательство в поддержку гипотезы (Input этап TDPD)"""
-        if hypothesis_id not in self.hypotheses:
+        hypothesis = self._owned_hypothesis(hypothesis_id, user_id)
+        if hypothesis is None:
             return False
-        self.hypotheses[hypothesis_id].evidence.append(evidence)
-        self.hypotheses[hypothesis_id].updated_at = datetime.now()
-        self.save_to_file()  # ← Сохраняем в JSON
+        hypothesis.evidence.append(evidence)
+        hypothesis.updated_at = datetime.now()
+        self.save()  # ← Сохраняем в БД
         return True
     
-    def add_survey_question(self, hypothesis_id: str, question: SurveyQuestion) -> bool:
+    def add_survey_question(self, hypothesis_id: str, question: SurveyQuestion,
+                            user_id: Optional[str] = None) -> bool:
         """Добавляет вопрос для анкетирования"""
-        if hypothesis_id not in self.hypotheses:
+        hypothesis = self._owned_hypothesis(hypothesis_id, user_id)
+        if hypothesis is None:
             return False
-        self.hypotheses[hypothesis_id].survey_questions.append(question)
-        self.save_to_file()  # ← Сохраняем в JSON
+        hypothesis.survey_questions.append(question)
+        self.save()  # ← Сохраняем в БД
         return True
     
-    def validate_hypothesis(self, hypothesis_id: str) -> Tuple[bool, Optional[HypothesisScore]]:
+    def validate_hypothesis(self, hypothesis_id: str,
+                            user_id: Optional[str] = None) -> Tuple[bool, Optional[HypothesisScore]]:
         """
         Валидирует гипотезу и вычисляет score.
         Реализует Red/Green этапы TDPD (проверка гипотез).
         """
-        if hypothesis_id not in self.hypotheses:
+        hypothesis = self._owned_hypothesis(hypothesis_id, user_id)
+        if hypothesis is None:
             return False, None
-        
-        hypothesis = self.hypotheses[hypothesis_id]
         
         # Вычисляем score
         score = self.scoring_engine.calculate_score(hypothesis)
@@ -498,46 +517,76 @@ class HypothesisManager:
             hypothesis.status = HypothesisStatus.REJECTED
         
         hypothesis.updated_at = datetime.now()
-        self.save_to_file()  # ← Сохраняем в JSON
+        self.save()  # ← Сохраняем в БД
         return True, score
     
-    def record_outcome(self, hypothesis_id: str, outcome: RealWorldOutcome) -> bool:
+    def record_outcome(self, hypothesis_id: str, outcome: RealWorldOutcome,
+                       user_id: Optional[str] = None) -> bool:
         """
         Записывает фактический исход фичи после релиза (Output/UAT этап TDPD).
         Это ключевой этап для проверки корреляции score ↔ реальный успех (Цель 3 ТЗ).
         """
-        if hypothesis_id not in self.hypotheses:
+        hypothesis = self._owned_hypothesis(hypothesis_id, user_id)
+        if hypothesis is None:
             return False
         
         outcome.hypothesis_id = hypothesis_id
-        self.hypotheses[hypothesis_id].outcome = outcome
-        self.hypotheses[hypothesis_id].status = HypothesisStatus.COMPLETED
-        self.hypotheses[hypothesis_id].updated_at = datetime.now()
-        self.save_to_file()  # ← Сохраняем в JSON
+        hypothesis.outcome = outcome
+        hypothesis.status = HypothesisStatus.COMPLETED
+        hypothesis.updated_at = datetime.now()
+        self.save()  # ← Сохраняем в БД
         return True
     
-    def get_hypothesis(self, hypothesis_id: str) -> Optional[Hypothesis]:
-        """Получает гипотезу по ID"""
-        return self.hypotheses.get(hypothesis_id)
+    def _owned_hypothesis(self, hypothesis_id: str,
+                          user_id: Optional[str] = None) -> Optional[Hypothesis]:
+        """Возвращает гипотезу, если она принадлежит user_id (или фильтр не задан)."""
+        hypothesis = self.hypotheses.get(hypothesis_id)
+        if hypothesis is None:
+            return None
+        if user_id is not None and hypothesis.user_id != user_id:
+            return None
+        return hypothesis
+
+    def get_hypothesis(self, hypothesis_id: str,
+                       user_id: Optional[str] = None) -> Optional[Hypothesis]:
+        """Получает гипотезу по ID (с проверкой владельца, если задан user_id)"""
+        return self._owned_hypothesis(hypothesis_id, user_id)
     
-    def list_hypotheses(self) -> List[Hypothesis]:
-        """Список всех гипотез"""
-        return list(self.hypotheses.values())
+    def list_hypotheses(self, user_id: Optional[str] = None) -> List[Hypothesis]:
+        """Список гипотез (при user_id — только гипотезы этого пользователя)"""
+        if user_id is None:
+            return list(self.hypotheses.values())
+        return [h for h in self.hypotheses.values() if h.user_id == user_id]
+
+    def claim_orphaned_hypotheses(self, user_id: str) -> int:
+        """Привязывает «сиротские» гипотезы (user_id="") к первому пользователю.
+        Возвращает число привязанных гипотез."""
+        claimed = 0
+        for hypothesis in self.hypotheses.values():
+            if hypothesis.user_id == "":
+                hypothesis.user_id = user_id
+                hypothesis.updated_at = datetime.now()
+                claimed += 1
+        if claimed:
+            self.save()
+        return claimed
     
-    def export_hypothesis(self, hypothesis_id: str) -> Optional[Dict]:
+    def export_hypothesis(self, hypothesis_id: str,
+                          user_id: Optional[str] = None) -> Optional[Dict]:
         """Экспортирует гипотезу в JSON (Output этап TDPD)"""
-        hypothesis = self.get_hypothesis(hypothesis_id)
+        hypothesis = self._owned_hypothesis(hypothesis_id, user_id)
         if not hypothesis:
             return None
         return hypothesis.to_dict()
 
-    def scan_auto_research(self, hypothesis_id: str) -> Dict:
+    def scan_auto_research(self, hypothesis_id: str,
+                           user_id: Optional[str] = None) -> Dict:
         """
         🔥 НОВАЯ ФУНКЦИОНАЛЬНАЯ ВОЗМОЖНОСТЬ:
         Автоматически ищет исследования в открытых источниках по теме гипотезы
         и сохраняет их в auto_research_sources (максимум 5).
         """
-        hypothesis = self.get_hypothesis(hypothesis_id)
+        hypothesis = self._owned_hypothesis(hypothesis_id, user_id)
         if not hypothesis:
             return {'success': False, 'error': 'Гипотеза не найдена'}
 
@@ -556,7 +605,7 @@ class HypothesisManager:
         # Сохраняем в гипотезу
         hypothesis.auto_research_sources = sources
         hypothesis.updated_at = datetime.now()
-        self.save_to_file()
+        self.save()
 
         return {
             'success': True,
@@ -569,54 +618,7 @@ class HypothesisManager:
         }
     
     # ========================================================================
-    # PERSISTENCE: Сохранение и загрузка данных в JSON файл
-    # ========================================================================
-    
-    def _atomic_write_json(self, data: Dict) -> None:
-        """Пишет JSON во временный файл и атомарно подменяет основной."""
-        tmp_path = Path(str(self.STORAGE_FILE) + '.tmp')
-        with open(tmp_path, 'w', encoding='utf-8') as f:
-            json.dump(data, f, ensure_ascii=False, indent=2, default=str)
-            f.flush()
-            os.fsync(f.fileno())
-        os.replace(tmp_path, self.STORAGE_FILE)
-
-    @contextmanager
-    def _storage_lock(self):
-        """Блокировка записи, чтобы несколько процессов не перезаписывали файл."""
-        lock_path = Path(str(self.STORAGE_FILE) + '.lock')
-        self._ensure_storage_dir()
-        fh = open(lock_path, 'w')
-        try:
-            try:
-                import fcntl
-                fcntl.flock(fh, fcntl.LOCK_EX)
-            except (ImportError, OSError):
-                pass
-            yield
-        finally:
-            try:
-                import fcntl
-                fcntl.flock(fh, fcntl.LOCK_UN)
-            except (ImportError, OSError):
-                pass
-            fh.close()
-
-    def _backup_corrupt_file(self) -> None:
-        """Перемещает повреждённый файл в бэкап, чтобы не потерять данные молча."""
-        path = Path(self.STORAGE_FILE)
-        if not path.exists():
-            return
-        stamp = datetime.now().strftime('%Y%m%d-%H%M%S')
-        backup = Path(str(self.STORAGE_FILE) + f'.corrupt-{stamp}')
-        try:
-            os.replace(path, backup)
-            print(f"⚠️ Файл {self.STORAGE_FILE} повреждён. Создана копия: {backup}")
-        except Exception as e:
-            print(f"❌ Не удалось создать резервную копию {self.STORAGE_FILE}: {e}")
-
-    # ========================================================================
-    # PERSISTENCE: Сохранение в реляционную БД PostgreSQL (DATABASE_URL)
+    # PERSISTENCE: Сохранение в PostgreSQL (DATABASE_URL)
     # ========================================================================
 
     POSTGRES_TABLE = "hypotheses"
@@ -750,56 +752,18 @@ class HypothesisManager:
         finally:
             conn.close()
 
-    def save_to_file(self) -> bool:
-        """Сохраняет все гипотезы (PostgreSQL при наличии DATABASE_URL, иначе JSON)."""
-        if getattr(self, "use_postgres", False):
-            return self._save_to_postgres()
-        try:
-            data = {
-                h_id: h.to_dict() 
-                for h_id, h in self.hypotheses.items()
-            }
-            with self._storage_lock():
-                self._atomic_write_json(data)
-            print(f"💾 Данные сохранены в {self.STORAGE_FILE} ({len(self.hypotheses)} гипотез)")
-            return True
-        except Exception as e:
-            print(f"❌ Ошибка сохранения данных в {self.STORAGE_FILE}: {e}")
-            return False
-    
-    def load_from_file(self) -> bool:
-        """Загружает гипотезы (из PostgreSQL при наличии DATABASE_URL, иначе из JSON)."""
-        if getattr(self, "use_postgres", False):
-            return self._load_from_postgres()
-        try:
-            if not Path(self.STORAGE_FILE).exists():
-                print(f"📁 Файл {self.STORAGE_FILE} не найден, начата работа с пустым хранилищем")
-                return True  # Файл еще не создан - это нормально
-            
-            with open(self.STORAGE_FILE, 'r', encoding='utf-8') as f:
-                raw = f.read()
+    def save(self) -> bool:
+        """Сохраняет все гипотезы в PostgreSQL (единственное хранилище)."""
+        if not self.use_postgres:
+            return True  # БД не настроена — данные только в памяти
+        return self._save_to_postgres()
 
-            try:
-                data = json.loads(raw)
-            except Exception:
-                self._backup_corrupt_file()
-                return True  # Файл повреждён — начинаем с пустого, данные сохранены в бэкап
+    def load(self) -> bool:
+        """Загружает все гипотезы из PostgreSQL."""
+        if not self.use_postgres:
+            return True  # БД не настроена — начинаем с пустого набора
+        return self._load_from_postgres()
 
-            if not isinstance(data, dict):
-                self._backup_corrupt_file()
-                return True
-            
-            # Восстанавливаем гипотезы из JSON
-            for h_id, h_data in data.items():
-                hypothesis = self._hypothesis_from_dict(h_data)
-                self.hypotheses[h_id] = hypothesis
-            
-            print(f"📥 Загружено {len(self.hypotheses)} гипотез из {self.STORAGE_FILE}")
-            return True
-        except Exception as e:
-            print(f"❌ Ошибка загрузки данных из {self.STORAGE_FILE}: {e}")
-            return False
-    
     @staticmethod
     def _hypothesis_from_dict(data: Dict) -> Hypothesis:
         """Восстанавливает объект Hypothesis из словаря"""
@@ -812,6 +776,7 @@ class HypothesisManager:
                 problem_statement=data.get('problem_statement', ''),
                 target_users=data.get('target_users', ''),
                 expected_outcome=data.get('expected_outcome', ''),
+                user_id=data.get('user_id', ''),
                 status=HypothesisStatus(data.get('status', 'draft')),
             )
             
@@ -907,13 +872,13 @@ class HypothesisManager:
         outcome.recorded_at = datetime.fromisoformat(data.get('recorded_at', datetime.now().isoformat()))
         return outcome
     
-    def get_correlation_analysis(self) -> Dict:
+    def get_correlation_analysis(self, user_id: Optional[str] = None) -> Dict:
         """
         Анализирует корреляцию между score и реальным исходом (Цель 3 ТЗ).
         Требует проведения 6+ месяцев эксплуатации с регулярной фиксацией исходов.
         """
-        completed = [h for h in self.hypotheses.values() 
-                    if h.outcome and h.score]
+        hypotheses = self.list_hypotheses(user_id)
+        completed = [h for h in hypotheses if h.outcome and h.score]
         
         if not completed:
             return {

@@ -1165,3 +1165,208 @@ html, body {
     color: inherit;
     word-break: normal;
 }
+
+/* ============================================================================
+   Google-аутентификация
+   ============================================================================ */
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.header-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+}
+
+.auth-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.25);
+    background-size: cover;
+    background-position: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    color: white;
+    font-size: 18px;
+}
+
+.auth-user-info {
+    display: flex;
+    flex-direction: column;
+    line-height: 1.2;
+}
+
+.auth-name {
+    font-weight: 700;
+    font-size: 14px;
+}
+
+.auth-email {
+    font-size: 12px;
+    opacity: 0.85;
+}
+
+.btn-logout {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+    padding: 6px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.btn-logout:hover {
+    background: rgba(255, 255, 255, 0.35);
+}
+
+.auth-gate {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 100%);
+    padding: 20px;
+}
+
+.auth-gate-card {
+    background: white;
+    border-radius: 16px;
+    padding: 40px 36px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(30, 64, 175, 0.18);
+}
+
+.auth-gate-card h2 {
+    margin-bottom: 12px;
+    color: var(--primary-color);
+}
+
+.auth-gate-card p {
+    color: #555;
+    margin-bottom: 24px;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.auth-gate-card #g_id_signin {
+    display: flex;
+    justify-content: center;
+    min-height: 44px;
+}
+
+.auth-hint {
+    margin-top: 16px;
+    font-size: 13px;
+    color: #b45309;
+    background: #fef3c7;
+    padding: 10px 12px;
+    border-radius: 8px;
+    line-height: 1.5;
+}
+
+.google-signin-block {
+    display: flex;
+    justify-content: center;
+    min-height: 44px;
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: #94a3b8;
+    font-size: 12px;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-color);
+}
+
+.auth-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+}
+
+.auth-tab {
+    flex: 1;
+    padding: 9px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--light-bg);
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.auth-tab.active {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+    color: white;
+}
+
+.auth-form {
+    text-align: left;
+}
+
+.auth-form .form-group {
+    margin-bottom: 14px;
+}
+
+.auth-form .form-group label {
+    text-align: left;
+}
+
+.auth-rules {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: -4px 0 14px;
+    text-align: left;
+    line-height: 1.5;
+}
+
+.auth-error {
+    margin: 16px 0 0;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+    font-size: 13px;
+    text-align: left;
+}
+
+@media (max-width: 720px) {
+    .header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    .header-user {
+        width: 100%;
+    }
+    .auth-user-info {
+        flex: 1;
+    }
+}
